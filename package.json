@@ -35,5 +35,9 @@
     "rollup-plugin-typescript": "^1.0.1",
     "tslib": "^2.0.0",
     "typescript": "^3.9.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/greguz/mutent-mongodb.git"
   }
 }
