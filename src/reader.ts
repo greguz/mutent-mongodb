@@ -1,12 +1,18 @@
 import { Reader } from 'mutent'
-import { FilterQuery } from 'mongodb'
+import { Collection, FilterQuery } from 'mongodb'
 
-import { MongoOptions, toReadOptions } from './options'
-import { MongoSettings } from './settings'
+import { Options, toReadOptions } from './options'
 
-export function createReader<T, Q = FilterQuery<T>> (
-  settings: MongoSettings<T, Q>
-): Reader<T, Q, MongoOptions> {
+export interface ReaderSettings<T, Q = FilterQuery<T>> {
+  collection: Collection<T>
+  defaultOptions?: Options
+  errorFactory?: (query: Q, options: Options) => Error
+  queryMapper?: (query: Q) => FilterQuery<T>
+}
+
+export function createReader<T, Q> (
+  settings: ReaderSettings<T, Q>
+): Reader<T, Q, Options> {
   const { collection, defaultOptions, errorFactory, queryMapper } = settings
 
   return {

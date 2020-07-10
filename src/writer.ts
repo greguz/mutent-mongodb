@@ -1,12 +1,19 @@
 import { Writer } from 'mutent'
+import { Collection } from 'mongodb'
 
 import flatten from 'lodash/flatten'
 import isPlainObject from 'lodash/isPlainObject'
 import set from 'lodash/set'
 import uniq from 'lodash/uniq'
 
-import { MongoOptions, toCreateOptions, toDeleteOptions, toUpdateOptions } from './options'
-import { MongoSettings } from './settings'
+import { Options, toCreateOptions, toDeleteOptions, toUpdateOptions } from './options'
+
+export interface WriterSettings<T> {
+  beforeCreate?: (data: T) => Promise<T> | T
+  beforeUpdate?: (data: T) => Promise<T> | T
+  collection: Collection<T>
+  defaultOptions?: Options
+}
 
 type Path = Array<string | number>
 
@@ -77,8 +84,8 @@ function buildUpdateQuery(items: Item[]): any {
 }
 
 export function createWriter<T> (
-  settings: MongoSettings<T>
-): Writer<T, MongoOptions> {
+  settings: WriterSettings<T>
+): Writer<T, Options> {
   const { beforeCreate, beforeUpdate, collection, defaultOptions } = settings
 
   return {

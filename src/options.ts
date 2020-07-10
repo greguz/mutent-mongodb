@@ -2,13 +2,13 @@ import { CollectionInsertOneOptions, CommonOptions, FindOneOptions, UpdateOneOpt
 
 import pick from 'lodash/pick'
 
-export type MongoOptions =
+export type Options =
   & CollectionInsertOneOptions
   & CommonOptions
   & FindOneOptions
   & UpdateOneOptions
 
-export function toCreateOptions (options: MongoOptions): CollectionInsertOneOptions {
+export function toCreateOptions (options: Options): CollectionInsertOneOptions {
   return pick(options, [
     'bypassDocumentValidation',
     'forceServerObjectId',
@@ -20,7 +20,7 @@ export function toCreateOptions (options: MongoOptions): CollectionInsertOneOpti
   ])
 }
 
-export function toReadOptions (options: MongoOptions): FindOneOptions {
+export function toReadOptions (options: Options): FindOneOptions {
   return pick(options, [
     'limit',
     'sort',
@@ -51,7 +51,7 @@ export function toReadOptions (options: MongoOptions): FindOneOptions {
   ])
 }
 
-export function toUpdateOptions (options: MongoOptions): UpdateOneOptions {
+export function toUpdateOptions (options: Options): UpdateOneOptions {
   return pick(options, [
     'arrayFilters',
     'bypassDocumentValidation',
@@ -63,7 +63,7 @@ export function toUpdateOptions (options: MongoOptions): UpdateOneOptions {
   ])
 }
 
-export function toDeleteOptions (options: MongoOptions): CommonOptions {
+export function toDeleteOptions (options: Options): CommonOptions {
   return pick(options, [
     'j',
     'session',
