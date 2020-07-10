@@ -1,0 +1,39 @@
+{
+  "name": "mutent-mongodb",
+  "version": "0.0.0",
+  "description": "",
+  "main": "mutent-mongodb.js",
+  "types": "types/index.d.ts",
+  "files": [
+    "mutent-mongodb.js",
+    "types"
+  ],
+  "scripts": {
+    "test": "tsc --noEmit",
+    "build:js": "rimraf .out && tsc --module es6 && rollup -c",
+    "build:types": "rimraf types && tsc --declaration --emitDeclarationOnly --declarationDir types",
+    "build": "npm run build:types && npm run build:js",
+    "prepublishOnly": "npm run test && npm run build"
+  },
+  "keywords": [
+    "mutent",
+    "mongo",
+    "mongodb"
+  ],
+  "author": "Giacomo Gregoletto",
+  "license": "MIT",
+  "dependencies": {
+    "lodash": "^4.17.19"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.157",
+    "@types/mongodb": "^3.5.25",
+    "mongodb": "^3.5.9",
+    "mutent": "^3.0.0",
+    "rimraf": "^3.0.2",
+    "rollup": "^2.21.0",
+    "rollup-plugin-typescript": "^1.0.1",
+    "tslib": "^2.0.0",
+    "typescript": "^3.9.6"
+  }
+}
