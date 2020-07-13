@@ -186,6 +186,7 @@ export function createWriter (settings) {
   const {
     collection,
     defaultOptions,
+    prepare,
     beforeCreate,
     beforeUpdate,
     beforeDelete,
@@ -196,28 +197,31 @@ export function createWriter (settings) {
 
   return {
     async create (data, options) {
-      if (beforeCreate) {
-        const out = await beforeCreate(data, options)
-        data = out || data
+      if (prepare) {
+        data = await prepare(data)
       }
-      const result = await collection.insertOne(
+      if (beforeCreate) {
+        await beforeCreate(data, options)
+      }
+      await collection.insertOne(
         data,
         toCreateOptions({ ...defaultOptions, ...options })
       )
-      data = result.ops[0]
       if (afterCreate) {
         await afterCreate(data, options)
       }
       return data
     },
     async update (oldData, newData, options) {
+      if (prepare) {
+        newData = await prepare(newData)
+      }
       const items = compareValues(oldData, newData)
       if (items.length <= 0) {
         return newData
       }
       if (beforeUpdate) {
-        const out = await beforeUpdate(oldData, newData, options)
-        newData = out || newData
+        await beforeUpdate(oldData, newData, options)
       }
       const { matchedCount } = await collection.updateOne(
         { _id: oldData._id },
@@ -234,8 +238,7 @@ export function createWriter (settings) {
     },
     async delete (data, options) {
       if (beforeDelete) {
-        const out = await beforeDelete(data, options)
-        data = out || data
+        await beforeDelete(data, options)
       }
       const result = await collection.deleteOne(
         { _id: data._id },
