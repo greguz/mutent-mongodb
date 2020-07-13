@@ -200,10 +200,11 @@ export function createWriter (settings) {
         const out = await beforeCreate(data, options)
         data = out || data
       }
-      await collection.insertOne(
+      const result = await collection.insertOne(
         data,
         toCreateOptions({ ...defaultOptions, ...options })
       )
+      data = result.ops[0]
       if (afterCreate) {
         await afterCreate(data, options)
       }
