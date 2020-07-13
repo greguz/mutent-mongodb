@@ -1,8 +1,37 @@
-import flatten from 'lodash/flatten'
-import isPlainObject from 'lodash/isPlainObject'
-import pick from 'lodash/pick'
-import set from 'lodash/set'
-import uniq from 'lodash/uniq'
+function set (object, path, value) {
+  let subject = object
+  for (let i = 0; i < path.length; i++) {
+    const key = path[i]
+    if (i >= path.length - 1) {
+      subject[key] = value
+    } else {
+      if (subject[key] === undefined) {
+        subject[key] = {}
+      }
+      subject = subject[key]
+    }
+  }
+  return object
+}
+
+function flatten (array) {
+  return array.reduce((acc, item) => acc.concat(item), [])
+}
+
+function isPlainObject (value) {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function pick (object, keys) {
+  return keys.reduce((acc, key) => set(acc, [key], object[key]), {})
+}
+
+function uniq (values) {
+  return values.reduce(
+    (acc, value) => acc.includes(value) ? acc : [...acc, value],
+    []
+  )
+}
 
 export function toCreateOptions (options) {
   return pick(options, [
