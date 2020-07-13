@@ -88,14 +88,14 @@ export function createReader (settings) {
   }
 }
 
-function compareValues(oldValue, newValue, path = []) {
+function compareValues (oldValue, newValue, path = []) {
   if (oldValue === newValue) {
     return []
   } else if (isPlainObject(oldValue) && isPlainObject(newValue)) {
     return flatten(
       uniq(Object.keys(oldValue).concat(Object.keys(newValue))).map(key =>
-        compareValues(oldValue[key], newValue[key], [...path, key]),
-      ),
+        compareValues(oldValue[key], newValue[key], [...path, key])
+      )
     )
   } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
     if (newValue.length === 0 || newValue.length < oldValue.length) {
@@ -140,7 +140,7 @@ function compareValues(oldValue, newValue, path = []) {
   }
 }
 
-function buildUpdateQuery(items) {
+function buildUpdateQuery (items) {
   return items.reduce((query, { path, newValue }) => {
     if (path[0] === '_id') {
       return query
