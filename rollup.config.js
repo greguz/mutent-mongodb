@@ -1,5 +1,5 @@
 export default {
-  input: '.out/index.js',
+  input: 'mutent-mongodb.mjs',
   output: {
     file: 'mutent-mongodb.js',
     format: 'cjs'
