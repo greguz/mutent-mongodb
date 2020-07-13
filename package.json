@@ -1,6 +1,6 @@
 {
   "name": "mutent-mongodb",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Mutent MongoDB plugin",
   "main": "mutent-mongodb.js",
   "types": "mutent-mongodb.d.ts",
