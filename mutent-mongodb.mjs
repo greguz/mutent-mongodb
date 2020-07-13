@@ -120,7 +120,7 @@ export function createReader (settings) {
 }
 
 function compareValues (oldValue, newValue, path = []) {
-  if (oldValue === newValue) {
+  if (oldValue === newValue || path[0] === '_id') {
     return []
   } else if (isPlainObject(oldValue) && isPlainObject(newValue)) {
     return flatten(
@@ -172,15 +172,14 @@ function compareValues (oldValue, newValue, path = []) {
 }
 
 function buildUpdateQuery (items) {
-  return items.reduce((query, { path, newValue }) => {
-    if (path[0] === '_id') {
-      return query
-    } else if (newValue === undefined) {
-      return set(query, ['$unset', path.join('.')], '')
-    } else {
-      return set(query, ['$set', path.join('.')], newValue)
-    }
-  }, {})
+  return items.reduce(
+    (query, { path, newValue }) => {
+      return newValue === undefined
+        ? set(query, ['$unset', path.join('.')], '')
+        : set(query, ['$set', path.join('.')], newValue)
+    },
+    {}
+  )
 }
 
 export function createWriter (settings) {
