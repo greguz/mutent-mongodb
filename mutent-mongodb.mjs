@@ -189,40 +189,53 @@ export function createWriter (settings) {
     defaultOptions,
     beforeCreate,
     beforeUpdate,
-    beforeDelete
+    beforeDelete,
+    afterCreate,
+    afterUpdate,
+    afterDelete
   } = settings
 
   return {
     async create (data, options) {
       if (beforeCreate) {
-        data = await beforeCreate(data, options)
+        const out = await beforeCreate(data, options)
+        data = out || data
       }
       await collection.insertOne(
         data,
         toCreateOptions({ ...defaultOptions, ...options })
       )
+      if (afterCreate) {
+        await afterCreate(data, options)
+      }
       return data
     },
     async update (oldData, newData, options) {
-      if (beforeUpdate) {
-        newData = await beforeUpdate(newData, options)
-      }
       const items = compareValues(oldData, newData)
-      if (items.length > 0) {
-        const { matchedCount } = await collection.updateOne(
-          { _id: oldData._id },
-          buildUpdateQuery(items),
-          toUpdateOptions({ ...defaultOptions, ...options })
-        )
-        if (matchedCount <= 0) {
-          throw new Error(`Expected to update ${oldData._id} document`)
-        }
+      if (items.length <= 0) {
+        return newDate
+      }
+      if (beforeUpdate) {
+        const out = await beforeUpdate(oldData, newData, options)
+        newData = out || newData
+      }
+      const { matchedCount } = await collection.updateOne(
+        { _id: oldData._id },
+        buildUpdateQuery(items),
+        toUpdateOptions({ ...defaultOptions, ...options })
+      )
+      if (matchedCount <= 0) {
+        throw new Error(`Expected to update ${oldData._id} document`)
+      }
+      if (afterUpdate) {
+        await afterUpdate(oldData, newData, options)
       }
       return newData
     },
     async delete (data, options) {
       if (beforeDelete) {
-        await beforeDelete(data, options)
+        const out = await beforeDelete(data, options)
+        data = out || data
       }
       const result = await collection.deleteOne(
         { _id: data._id },
@@ -231,6 +244,9 @@ export function createWriter (settings) {
       const deletedCount = result.deletedCount || 0
       if (deletedCount <= 0) {
         throw new Error(`Expected to delete ${data._id} document`)
+      }
+      if (afterDelete) {
+        await afterDelete(data, options)
       }
     }
   }

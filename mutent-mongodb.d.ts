@@ -19,11 +19,15 @@ export interface ReaderSettings<T, Q = FilterQuery<T>> {
 }
 export declare function createReader<T, Q> (settings: ReaderSettings<T, Q>): Reader<T, Q, Options>
 
+export declare type MaybePromise<T> = Promise<T> | T
 export interface WriterSettings<T> {
   collection: Collection<T>
   defaultOptions?: Options
-  beforeCreate?: (data: T, options: Options) => Promise<T> | T
-  beforeUpdate?: (data: T, options: Options) => Promise<T> | T
-  beforeDelete?: (data: T, options: Options) => Promise<void> | void
+  beforeCreate?: (data: T, options: Options) => MaybePromise<T | void>
+  afterCreate?: (data: T, options: Options) => MaybePromise<void>
+  beforeUpdate?: (oldData: T, newData: T, options: Options) => MaybePromise<T | void>
+  afterUpdate?: (oldData: T, newData: T, options: Options) => MaybePromise<void>
+  beforeDelete?: (data: T, options: Options) => MaybePromise<T | void>
+  afterDelete?: (data: T, options: Options) => MaybePromise<void>
 }
 export declare function createWriter<T> (settings: WriterSettings<T>): Writer<T, Options>
