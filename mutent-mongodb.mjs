@@ -212,7 +212,7 @@ export function createWriter (settings) {
     async update (oldData, newData, options) {
       const items = compareValues(oldData, newData)
       if (items.length <= 0) {
-        return newDate
+        return newData
       }
       if (beforeUpdate) {
         const out = await beforeUpdate(oldData, newData, options)
