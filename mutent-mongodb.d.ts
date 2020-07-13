@@ -22,8 +22,8 @@ export declare function createReader<T, Q> (settings: ReaderSettings<T, Q>): Rea
 export interface WriterSettings<T> {
   collection: Collection<T>
   defaultOptions?: Options
-  beforeCreate?: (data: T) => Promise<T> | T
-  beforeUpdate?: (data: T) => Promise<T> | T
-  beforeDelete?: (data: T) => Promise<void> | void
+  beforeCreate?: (data: T, options: Options) => Promise<T> | T
+  beforeUpdate?: (data: T, options: Options) => Promise<T> | T
+  beforeDelete?: (data: T, options: Options) => Promise<void> | void
 }
 export declare function createWriter<T> (settings: WriterSettings<T>): Writer<T, Options>
