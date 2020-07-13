@@ -3,7 +3,9 @@ function set (object, path, value) {
   for (let i = 0; i < path.length; i++) {
     const key = path[i]
     if (i >= path.length - 1) {
-      subject[key] = value
+      if (subject[key] !== value) {
+        subject[key] = value
+      }
     } else {
       if (subject[key] === undefined) {
         subject[key] = {}
