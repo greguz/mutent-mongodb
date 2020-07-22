@@ -171,6 +171,25 @@ function compareValues (oldValue, newValue, path = []) {
   }
 }
 
+function omitUndefinedProperties (value) {
+  if (isPlainObject(value)) {
+    return Object.keys(value).reduce(
+      (acc, key) => {
+        const val = value[key]
+        if (val !== undefined) {
+          acc[key] = omitUndefinedProperties(val)
+        }
+        return acc
+      },
+      {}
+    )
+  } else if (Array.isArray(value)) {
+    return value.map(omitUndefinedProperties)
+  } else {
+    return value
+  }
+}
+
 function buildUpdateQuery (items) {
   return items.reduce(
     (query, { path, newValue }) => {
@@ -204,7 +223,7 @@ export function createWriter (settings) {
         await beforeCreate(data, options)
       }
       await collection.insertOne(
-        data,
+        omitUndefinedProperties(data),
         toCreateOptions({ ...defaultOptions, ...options })
       )
       if (afterCreate) {
