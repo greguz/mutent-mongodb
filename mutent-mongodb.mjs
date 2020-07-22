@@ -104,6 +104,7 @@ export function createReader (settings) {
 
   return {
     Error: errorFactory,
+    errorFactory,
     find (query, options) {
       return collection.findOne(
         queryMapper ? queryMapper(query) : query,
