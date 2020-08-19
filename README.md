@@ -2,16 +2,25 @@
 
 ```javascript
 const { createStore } = require('mutent')
-const { createReader, createWriter } = require('mutent-mongodb')
+const { createDriver } = require('mutent-mongodb')
 
-function createStoreByCollection (collection) {
+function createMongoStore (collection) {
   return createStore({
     autoCommit: true,
     classy: false,
     historySize: 8,
     safe: true,
-    reader: createReader({ collection }),
-    writer: createWriter({ collection })
+    driver: createDriver(collection, {
+      // defaultOptions
+      // errorFactory
+      // prepare
+      // beforeCreate
+      // afterCreate
+      // beforeUpdate
+      // afterUpdate
+      // beforeDelete
+      // afterDelete
+    })
   })
 }
 ```

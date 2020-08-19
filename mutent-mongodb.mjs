@@ -99,24 +99,22 @@ export function toDeleteOptions (options) {
   ])
 }
 
-export function createReader (settings) {
-  const { collection, defaultOptions, errorFactory, queryMapper } = settings
-
-  return {
-    Error: errorFactory,
-    errorFactory,
-    find (query, options) {
-      return collection.findOne(
-        queryMapper ? queryMapper(query) : query,
-        toReadOptions({ ...defaultOptions, ...options })
-      )
-    },
-    filter (query, options) {
-      return collection.find(
-        queryMapper ? queryMapper(query) : query,
-        toReadOptions({ ...defaultOptions, ...options })
-      )
-    }
+function omitUndefinedProperties (value) {
+  if (isPlainObject(value)) {
+    return Object.keys(value).reduce(
+      (acc, key) => {
+        const val = value[key]
+        if (val !== undefined) {
+          acc[key] = omitUndefinedProperties(val)
+        }
+        return acc
+      },
+      {}
+    )
+  } else if (Array.isArray(value)) {
+    return value.map(omitUndefinedProperties)
+  } else {
+    return value
   }
 }
 
@@ -172,25 +170,6 @@ function compareValues (oldValue, newValue, path = []) {
   }
 }
 
-function omitUndefinedProperties (value) {
-  if (isPlainObject(value)) {
-    return Object.keys(value).reduce(
-      (acc, key) => {
-        const val = value[key]
-        if (val !== undefined) {
-          acc[key] = omitUndefinedProperties(val)
-        }
-        return acc
-      },
-      {}
-    )
-  } else if (Array.isArray(value)) {
-    return value.map(omitUndefinedProperties)
-  } else {
-    return value
-  }
-}
-
 function buildUpdateQuery (items) {
   return items.reduce(
     (query, { path, newValue }) => {
@@ -202,10 +181,10 @@ function buildUpdateQuery (items) {
   )
 }
 
-export function createWriter (settings) {
+export function createDriver (collection, settings = {}) {
   const {
-    collection,
     defaultOptions,
+    errorFactory,
     prepare,
     beforeCreate,
     beforeUpdate,
@@ -216,6 +195,22 @@ export function createWriter (settings) {
   } = settings
 
   return {
+    async find (query, options, isRequired) {
+      const data = await collection.findOne(
+        query,
+        toReadOptions({ ...defaultOptions, ...options })
+      )
+      if (isRequired && !data && errorFactory) {
+        throw errorFactory(query, options)
+      }
+      return data
+    },
+    filter (query, options) {
+      return collection.find(
+        query,
+        toReadOptions({ ...defaultOptions, ...options })
+      )
+    },
     async create (data, options) {
       if (prepare) {
         data = await prepare(data)
@@ -274,3 +269,5 @@ export function createWriter (settings) {
     }
   }
 }
+
+export default createDriver
