@@ -185,7 +185,8 @@ export function createDriver (collection, settings = {}) {
   const {
     defaultOptions,
     errorFactory,
-    prepare,
+    prepareDocument,
+    prepareFilter,
     beforeCreate,
     beforeUpdate,
     beforeDelete,
@@ -196,24 +197,26 @@ export function createDriver (collection, settings = {}) {
 
   return {
     async find (query, options, isRequired) {
+      const o = { ...defaultOptions, ...options }
       const data = await collection.findOne(
-        query,
-        toReadOptions({ ...defaultOptions, ...options })
+        prepareFilter ? prepareFilter(query, o) : query,
+        toReadOptions(o)
       )
       if (isRequired && !data && errorFactory) {
-        throw errorFactory(query, options)
+        throw errorFactory(query, o)
       }
       return data
     },
     filter (query, options) {
+      const o = { ...defaultOptions, ...options }
       return collection.find(
-        query,
-        toReadOptions({ ...defaultOptions, ...options })
+        prepareFilter ? prepareFilter(query, o) : query,
+        toReadOptions(o)
       )
     },
     async create (data, options) {
-      if (prepare) {
-        data = await prepare(data)
+      if (prepareDocument) {
+        data = prepareDocument(data, options)
       }
       if (beforeCreate) {
         await beforeCreate(data, options)
@@ -228,8 +231,8 @@ export function createDriver (collection, settings = {}) {
       return data
     },
     async update (oldData, newData, options) {
-      if (prepare) {
-        newData = await prepare(newData)
+      if (prepareDocument) {
+        newData = prepareDocument(newData, options)
       }
       const items = compareValues(oldData, newData)
       if (items.length <= 0) {
@@ -252,6 +255,9 @@ export function createDriver (collection, settings = {}) {
       return newData
     },
     async delete (data, options) {
+      if (prepareDocument) {
+        data = prepareDocument(data, options)
+      }
       if (beforeDelete) {
         await beforeDelete(data, options)
       }

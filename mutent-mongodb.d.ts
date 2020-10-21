@@ -15,7 +15,8 @@ export declare type MaybePromise<T> = Promise<T> | T
 export interface Settings<T> {
   defaultOptions?: Options
   errorFactory?: (query: FilterQuery<T>, options: Options) => Error
-  prepare?: (data: T) => MaybePromise<T>
+  prepareDocument?: (data: T, options: Options) => T
+  prepareFilter?: (query: FilterQuery<T>, options: Options) => FilterQuery<T>
   beforeCreate?: (data: T, options: Options) => MaybePromise<void>
   afterCreate?: (data: T, options: Options) => MaybePromise<void>
   beforeUpdate?: (oldData: T, newData: T, options: Options) => MaybePromise<void>
