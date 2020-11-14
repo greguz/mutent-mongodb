@@ -1,6 +1,6 @@
 {
   "name": "mutent-mongodb",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Mutent MongoDB driver",
   "main": "mutent-mongodb.js",
   "types": "mutent-mongodb.d.ts",
