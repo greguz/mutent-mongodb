@@ -1,19 +1,14 @@
-function set (object, path, value) {
-  let subject = object
-  for (let i = 0; i < path.length; i++) {
-    const key = path[i]
-    if (i >= path.length - 1) {
-      if (subject[key] !== value) {
-        subject[key] = value
-      }
-    } else {
-      if (subject[key] === undefined) {
-        subject[key] = {}
-      }
-      subject = subject[key]
-    }
+function set (obj, key, value) {
+  obj[key] = value
+  return obj
+}
+
+function setDeep (obj, k1, k2, value) {
+  if (obj[k1] === undefined) {
+    obj[k1] = {}
   }
-  return object
+  obj[k1][k2] = value
+  return obj
 }
 
 function flatten (array) {
@@ -35,7 +30,7 @@ function uniq (values) {
   )
 }
 
-export function toCreateOptions (options) {
+function asCreateOptions (options) {
   return pick(options, [
     'bypassDocumentValidation',
     'forceServerObjectId',
@@ -47,7 +42,7 @@ export function toCreateOptions (options) {
   ])
 }
 
-export function toReadOptions (options) {
+function asReadOptions (options) {
   return pick(options, [
     'limit',
     'sort',
@@ -78,7 +73,7 @@ export function toReadOptions (options) {
   ])
 }
 
-export function toUpdateOptions (options) {
+function asUpdateOptions (options) {
   return pick(options, [
     'arrayFilters',
     'bypassDocumentValidation',
@@ -90,7 +85,7 @@ export function toUpdateOptions (options) {
   ])
 }
 
-export function toDeleteOptions (options) {
+function asDeleteOptions (options) {
   return pick(options, [
     'j',
     'session',
@@ -99,23 +94,21 @@ export function toDeleteOptions (options) {
   ])
 }
 
-function omitUndefinedProperties (value) {
-  if (isPlainObject(value)) {
-    return Object.keys(value).reduce(
-      (acc, key) => {
-        const val = value[key]
-        if (val !== undefined) {
-          acc[key] = omitUndefinedProperties(val)
-        }
-        return acc
-      },
-      {}
-    )
-  } else if (Array.isArray(value)) {
-    return value.map(omitUndefinedProperties)
-  } else {
-    return value
+function stripUndefinedValues (obj) {
+  if (isPlainObject(obj)) {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key]
+      if (val === undefined) {
+        delete obj[key]
+      } else {
+        stripUndefinedValues(val)
+      }
+    }
+  } else if (Array.isArray(obj)) {
+    obj.forEach(stripUndefinedValues)
   }
+
+  return obj
 }
 
 function compareValues (oldValue, newValue, path = []) {
@@ -174,106 +167,63 @@ function buildUpdateQuery (items) {
   return items.reduce(
     (query, { path, newValue }) => {
       return newValue === undefined
-        ? set(query, ['$unset', path.join('.')], '')
-        : set(query, ['$set', path.join('.')], newValue)
+        ? setDeep(query, '$unset', path.join('.'), '')
+        : setDeep(query, '$set', path.join('.'), newValue)
     },
     {}
   )
 }
 
-export function createDriver (collection, settings = {}) {
-  const {
-    defaultOptions,
-    errorFactory,
-    prepareDocument,
-    prepareFilter,
-    beforeCreate,
-    beforeUpdate,
-    beforeDelete,
-    afterCreate,
-    afterUpdate,
-    afterDelete
-  } = settings
+export function createMongoAdapter (collection, settings = {}) {
+  const { replace } = settings
 
   return {
-    async find (query, options, isRequired) {
-      const o = { ...defaultOptions, ...options }
-      const data = await collection.findOne(
-        prepareFilter ? prepareFilter(query, o) : query,
-        toReadOptions(o)
-      )
-      if (isRequired && !data && errorFactory) {
-        throw errorFactory(query, o)
-      }
-      return data
+    find (query, options) {
+      return collection.findOne(query, asReadOptions(options))
     },
     filter (query, options) {
-      const o = { ...defaultOptions, ...options }
-      return collection.find(
-        prepareFilter ? prepareFilter(query, o) : query,
-        toReadOptions(o)
-      )
+      return collection.find(query, asReadOptions(options))
     },
     async create (data, options) {
-      if (prepareDocument) {
-        data = prepareDocument(data, options)
-      }
-      if (beforeCreate) {
-        await beforeCreate(data, options)
-      }
       await collection.insertOne(
-        omitUndefinedProperties(data),
-        toCreateOptions({ ...defaultOptions, ...options })
+        stripUndefinedValues(data),
+        asCreateOptions(options)
       )
-      if (afterCreate) {
-        await afterCreate(data, options)
-      }
-      return data
     },
     async update (oldData, newData, options) {
-      if (prepareDocument) {
-        newData = prepareDocument(newData, options)
+      if (replace) {
+        const { matchedCount } = await collection.replaceOne(
+          { _id: oldData._id },
+          stripUndefinedValues(newData),
+          asUpdateOptions(options)
+        )
+        if (matchedCount !== 1) {
+          throw new Error(`Expected update ack for document ${oldData._id}`)
+        }
+      } else {
+        const items = compareValues(oldData, newData)
+        if (items.length <= 0) {
+          return newData
+        }
+
+        const { matchedCount } = await collection.updateOne(
+          { _id: oldData._id },
+          buildUpdateQuery(items),
+          asUpdateOptions(options)
+        )
+        if (matchedCount !== 1) {
+          throw new Error(`Expected replace ack for document ${oldData._id}`)
+        }
       }
-      const items = compareValues(oldData, newData)
-      if (items.length <= 0) {
-        return newData
-      }
-      if (beforeUpdate) {
-        await beforeUpdate(oldData, newData, options)
-      }
-      const { matchedCount } = await collection.updateOne(
-        { _id: oldData._id },
-        buildUpdateQuery(items),
-        toUpdateOptions({ ...defaultOptions, ...options })
-      )
-      if (matchedCount <= 0) {
-        throw new Error(`Expected to update ${oldData._id} document`)
-      }
-      if (afterUpdate) {
-        await afterUpdate(oldData, newData, options)
-      }
-      return newData
     },
     async delete (data, options) {
-      if (prepareDocument) {
-        data = prepareDocument(data, options)
-      }
-      if (beforeDelete) {
-        await beforeDelete(data, options)
-      }
-      const result = await collection.deleteOne(
+      const { deletedCount } = await collection.deleteOne(
         { _id: data._id },
-        toDeleteOptions({ ...defaultOptions, ...options })
+        asDeleteOptions(options)
       )
-      const deletedCount = result.deletedCount || 0
-      if (deletedCount <= 0) {
-        throw new Error(`Expected to delete ${data._id} document`)
-      }
-      if (afterDelete) {
-        await afterDelete(data, options)
+      if (deletedCount !== 1) {
+        throw new Error(`Expected delete ack for document ${data._id}`)
       }
     }
   }
 }
-
-export default createDriver
