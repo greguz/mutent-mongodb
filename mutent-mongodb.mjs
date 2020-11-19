@@ -1,8 +1,3 @@
-function set (obj, key, value) {
-  obj[key] = value
-  return obj
-}
-
 function setDeep (obj, k1, k2, value) {
   if (obj[k1] === undefined) {
     obj[k1] = {}
@@ -20,7 +15,14 @@ function isPlainObject (value) {
 }
 
 function pick (object, keys) {
-  return keys.reduce((acc, key) => set(acc, [key], object[key]), {})
+  const result = {}
+  for (const key of keys) {
+    const val = object[key]
+    if (val !== undefined) {
+      result[key] = val
+    }
+  }
+  return result
 }
 
 function uniq (values) {
