@@ -9,9 +9,10 @@
     "mutent-mongodb.d.ts"
   ],
   "scripts": {
-    "test": "eslint *.mjs",
+    "lint": "eslint *.mjs",
     "build": "rollup -c",
-    "prepublishOnly": "npm run test && npm run build"
+    "test": "ava",
+    "prepublishOnly": "npm run lint && npm run build && npm run test"
   },
   "keywords": [
     "mutent",
@@ -21,16 +22,17 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "peerDependencies": {
-    "mutent": "^5.0.0-0"
+    "mutent": "^5.0.0-1"
   },
   "devDependencies": {
+    "ava": "^3.13.0",
     "eslint": "^7.13.0",
-    "eslint-config-standard": "^16.0.1",
+    "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.1.0",
-    "rollup": "^2.33.1"
+    "rollup": "^2.33.3"
   },
   "repository": {
     "type": "git",
