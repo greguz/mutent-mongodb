@@ -114,7 +114,7 @@ function stripUndefinedValues (obj) {
 }
 
 function compareValues (oldValue, newValue, path = []) {
-  if (oldValue === newValue || path[0] === '_id') {
+  if (oldValue === newValue) {
     return []
   } else if (isPlainObject(oldValue) && isPlainObject(newValue)) {
     return flatten(
