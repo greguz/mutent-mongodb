@@ -4,7 +4,7 @@
 import { Adapter } from 'mutent'
 import { Collection, CollectionInsertOneOptions, CommonOptions, FilterQuery, FindOneOptions, UpdateOneOptions } from 'mongodb'
 
-export declare type Options = CollectionInsertOneOptions & CommonOptions & FindOneOptions<any> & UpdateOneOptions
+export declare type Options<T = any> = CollectionInsertOneOptions & CommonOptions & FindOneOptions<T> & UpdateOneOptions
 
 export interface Settings {
   replace?: boolean
@@ -13,4 +13,4 @@ export interface Settings {
 export declare function createMongoAdapter<T> (
   collection: Collection<T>,
   settings?: Settings
-): Adapter<T, FilterQuery<T>, Options>
+): Adapter<T, FilterQuery<T>, Options<T>>
