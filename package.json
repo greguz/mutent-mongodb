@@ -22,7 +22,7 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "peerDependencies": {
-    "mutent": "^5.0.0-1"
+    "mutent": "^5.0.0"
   },
   "devDependencies": {
     "ava": "^3.13.0",
