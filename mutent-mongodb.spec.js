@@ -51,6 +51,7 @@ test('create', async t => {
     async insertOne (data, options) {
       t.deepEqual(data, { a: 'document' })
       t.deepEqual(options, { session: 'test' })
+      return { ops: [data] }
     }
   }
 
@@ -78,7 +79,7 @@ test('update', async t => {
 
   await adapter.update(
     { _id: 'test' },
-    { _id: 'nope', my: 'value' },
+    { _id: 'test', my: 'value' },
     { session: 'test', shit: true }
   )
 
