@@ -1,26 +1,16 @@
 # mutent-mongodb
 
-```javascript
-const { createStore } = require('mutent')
-const { createDriver } = require('mutent-mongodb')
+Mutent adapter for MongoDB collections.
 
-function createMongoStore (collection) {
-  return createStore({
-    autoCommit: true,
-    classy: false,
-    historySize: 8,
-    safe: true,
-    driver: createDriver(collection, {
-      // defaultOptions
-      // errorFactory
-      // prepare
-      // beforeCreate
-      // afterCreate
-      // beforeUpdate
-      // afterUpdate
-      // beforeDelete
-      // afterDelete
-    })
+```javascript
+import { createStore } from 'mutent'
+import { createMongoAdapter } from 'mutent-mongodb'
+
+const store = createStore({
+  name: 'MyCollectionStore',
+  adapter: createMongoAdapter(collection, {
+    // If true will replace the whole document instead of update changed fields only (default false)
+    replace: false
   })
-}
+})
 ```
