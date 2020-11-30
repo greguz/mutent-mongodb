@@ -187,10 +187,11 @@ export function createMongoAdapter (collection, settings = {}) {
       return collection.find(query, asReadOptions(options))
     },
     async create (data, options) {
-      await collection.insertOne(
+      const { ops } = await collection.insertOne(
         stripUndefinedValues(data),
         asCreateOptions(options)
       )
+      return ops[0]
     },
     async update (oldData, newData, options) {
       if (replace) {
