@@ -7,6 +7,7 @@ import { Collection, CollectionInsertOneOptions, CommonOptions, FilterQuery, Fin
 export declare type Options<T = any> = CollectionInsertOneOptions & CommonOptions & FindOneOptions<T> & UpdateOneOptions
 
 export interface Settings {
+  relax?: boolean
   replace?: boolean
 }
 

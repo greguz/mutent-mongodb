@@ -177,7 +177,7 @@ function buildUpdateQuery (items) {
 }
 
 export function createMongoAdapter (collection, settings = {}) {
-  const { replace } = settings
+  const { relax, replace } = settings
 
   return {
     find (query, options) {
@@ -200,7 +200,7 @@ export function createMongoAdapter (collection, settings = {}) {
           stripUndefinedValues(newData),
           asUpdateOptions(options)
         )
-        if (matchedCount !== 1) {
+        if (matchedCount !== 1 && !relax) {
           throw new Error(`Expected update ack for document ${oldData._id}`)
         }
       } else {
@@ -214,7 +214,7 @@ export function createMongoAdapter (collection, settings = {}) {
           buildUpdateQuery(items),
           asUpdateOptions(options)
         )
-        if (matchedCount !== 1) {
+        if (matchedCount !== 1 && !relax) {
           throw new Error(`Expected replace ack for document ${oldData._id}`)
         }
       }
@@ -224,7 +224,7 @@ export function createMongoAdapter (collection, settings = {}) {
         { _id: data._id },
         asDeleteOptions(options)
       )
-      if (deletedCount !== 1) {
+      if (deletedCount !== 1 && !relax) {
         throw new Error(`Expected delete ack for document ${data._id}`)
       }
     }
