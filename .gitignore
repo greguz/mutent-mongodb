@@ -1,2 +1,4 @@
-node_modules
+.vscode
 mutent-mongodb.js
+node_modules
+package-lock.json

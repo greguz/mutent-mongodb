@@ -9,7 +9,7 @@
     "mutent-mongodb.d.ts"
   ],
   "scripts": {
-    "lint": "eslint *.mjs",
+    "lint": "eslint src",
     "build": "rollup -c",
     "test": "ava",
     "prepublishOnly": "npm run lint && npm run build && npm run test"
@@ -25,14 +25,14 @@
     "mutent": "^5.0.0"
   },
   "devDependencies": {
-    "ava": "^3.13.0",
-    "eslint": "^7.13.0",
+    "ava": "^3.14.0",
+    "eslint": "^7.16.0",
     "eslint-config-standard": "^16.0.2",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^4.2.1",
-    "eslint-plugin-standard": "^4.1.0",
-    "rollup": "^2.33.3"
+    "eslint-plugin-standard": "^5.0.0",
+    "rollup": "^2.35.1"
   },
   "repository": {
     "type": "git",

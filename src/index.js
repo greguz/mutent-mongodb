@@ -1,0 +1,1 @@
+export { createMongoAdapter } from './adapter'
