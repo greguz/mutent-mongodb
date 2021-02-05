@@ -5,24 +5,7 @@ import {
   asReadOptions,
   asUpdateOptions
 } from './options'
-import { isPlainObject } from './util'
-
-function stripUndefinedValues (obj) {
-  if (isPlainObject(obj)) {
-    for (const key of Object.keys(obj)) {
-      const val = obj[key]
-      if (val === undefined) {
-        delete obj[key]
-      } else {
-        stripUndefinedValues(val)
-      }
-    }
-  } else if (Array.isArray(obj)) {
-    obj.forEach(stripUndefinedValues)
-  }
-
-  return obj
-}
+import { stripUndefinedValues } from './undefined'
 
 export function createMongoAdapter (collection, settings = {}) {
   const { relax, replace } = settings

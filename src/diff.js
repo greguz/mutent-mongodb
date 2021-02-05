@@ -1,3 +1,4 @@
+import { stripUndefinedValues } from './undefined'
 import { flatten, isPlainObject, uniq } from './util'
 
 function setDeep (obj, k1, k2, value) {
@@ -65,7 +66,7 @@ export function buildUpdateQuery (items) {
     (query, { path, newValue }) => {
       return newValue === undefined
         ? setDeep(query, '$unset', path.join('.'), '')
-        : setDeep(query, '$set', path.join('.'), newValue)
+        : setDeep(query, '$set', path.join('.'), stripUndefinedValues(newValue))
     },
     {}
   )

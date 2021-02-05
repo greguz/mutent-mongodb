@@ -49,7 +49,20 @@ test('create', async t => {
 
   const collection = {
     async insertOne (data, options) {
-      t.deepEqual(data, { a: 'document' })
+      t.deepEqual(data, {
+        a: 'document',
+        b: null,
+        d: {
+          e: 'object',
+          f: null
+        },
+        h: [
+          {
+            i: 'item',
+            j: null
+          }
+        ]
+      })
       t.deepEqual(options, { session: 'test' })
       return { ops: [data] }
     }
@@ -58,8 +71,27 @@ test('create', async t => {
   const adapter = createMongoAdapter(collection)
 
   await adapter.create(
-    { a: 'document' },
-    { session: 'test', shit: true }
+    {
+      a: 'document',
+      b: null,
+      c: undefined,
+      d: {
+        e: 'object',
+        f: null,
+        g: undefined
+      },
+      h: [
+        {
+          i: 'item',
+          j: null,
+          k: undefined
+        }
+      ]
+    },
+    {
+      session: 'test',
+      shit: true
+    }
   )
 })
 
@@ -68,9 +100,31 @@ test('update', async t => {
 
   const collection = {
     async updateOne (filter, update, options) {
-      t.deepEqual(filter, { _id: 'test' })
-      t.deepEqual(update, { $set: { my: 'value' } })
-      t.deepEqual(options, { session: 'test' })
+      t.deepEqual(filter, {
+        _id: 'test'
+      })
+      t.deepEqual(update, {
+        $set: {
+          a: 'document',
+          b: null,
+          d: {
+            e: 'object',
+            f: null
+          },
+          h: [
+            {
+              i: 'item',
+              j: null
+            }
+          ]
+        },
+        $unset: {
+          bye: ''
+        }
+      })
+      t.deepEqual(options, {
+        session: 'test'
+      })
       return { matchedCount: 1 }
     }
   }
@@ -78,9 +132,32 @@ test('update', async t => {
   const adapter = createMongoAdapter(collection)
 
   await adapter.update(
-    { _id: 'test' },
-    { _id: 'test', my: 'value' },
-    { session: 'test', shit: true }
+    {
+      _id: 'test',
+      bye: true
+    },
+    {
+      _id: 'test',
+      a: 'document',
+      b: null,
+      c: undefined,
+      d: {
+        e: 'object',
+        f: null,
+        g: undefined
+      },
+      h: [
+        {
+          i: 'item',
+          j: null,
+          k: undefined
+        }
+      ]
+    },
+    {
+      session: 'test',
+      shit: true
+    }
   )
 
   await adapter.update(
