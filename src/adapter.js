@@ -1,11 +1,91 @@
 import { buildUpdateQuery, compareValues } from './diff'
 import {
+  asBulkOptions,
   asCreateOptions,
   asDeleteOptions,
   asReadOptions,
   asUpdateOptions
 } from './options'
 import { stripUndefinedValues } from './undefined'
+
+function opInsertOne ({ data }) {
+  return {
+    insertOne: {
+      document: stripUndefinedValues(data)
+    }
+  }
+}
+
+function opUpdateOne ({ oldData, newData }, { upsert }) {
+  return {
+    updateOne: {
+      filter: {
+        _id: oldData._id
+      },
+      update: buildUpdateQuery(compareValues(oldData, newData)),
+      upsert
+    }
+  }
+}
+
+function opReplaceOne ({ oldData, newData }, { upsert }) {
+  return {
+    replaceOne: {
+      filter: {
+        _id: oldData._id
+      },
+      replacement: stripUndefinedValues(newData),
+      upsert
+    }
+  }
+}
+
+function opDeleteOne ({ data }) {
+  return {
+    deleteOne: {
+      filter: {
+        _id: data._id
+      }
+    }
+  }
+}
+
+function createBulkOperation (action, options, replace) {
+  switch (action.type) {
+    case 'CREATE':
+      return opInsertOne(action, options)
+    case 'UPDATE':
+      return replace
+        ? opReplaceOne(action, options)
+        : opUpdateOne(action, options)
+    case 'DELETE':
+      return opDeleteOne(action, options)
+  }
+}
+
+function handleBulkResult (action, index, { insertedIds, upsertedIds }) {
+  const data = action.type === 'UPDATE' ? action.newData : action.data
+
+  for (const item of insertedIds) {
+    if (item.index === index) {
+      return {
+        ...data,
+        _id: item._id
+      }
+    }
+  }
+
+  for (const item of upsertedIds) {
+    if (item.index === index) {
+      return {
+        ...data,
+        _id: item._id
+      }
+    }
+  }
+
+  return data
+}
 
 export class MongoAdapter {
   static create (collection, options) {
@@ -69,5 +149,17 @@ export class MongoAdapter {
     if (deletedCount !== 1 && !this.relax) {
       throw new Error(`Expected delete ack for document ${data._id}`)
     }
+  }
+
+  async bulk (actions, options) {
+    const result = await this.collection.bulkWrite(
+      actions.map(
+        action => createBulkOperation(action, options, this.replace)
+      ),
+      asBulkOptions(options)
+    )
+    return actions.map(
+      (action, index) => handleBulkResult(action, index, result)
+    )
   }
 }

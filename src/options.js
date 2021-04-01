@@ -88,3 +88,21 @@ export function asDeleteOptions ({ session, writeConcern }) {
     writeConcern
   }
 }
+
+export function asBulkOptions ({
+  bypassDocumentValidation,
+  forceServerObjectId,
+  ordered,
+  serializeFunctions,
+  session,
+  writeConcern
+}) {
+  return {
+    bypassDocumentValidation,
+    forceServerObjectId,
+    ordered,
+    serializeFunctions,
+    session,
+    writeConcern
+  }
+}
