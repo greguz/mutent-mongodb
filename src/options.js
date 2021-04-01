@@ -1,65 +1,90 @@
-import { pick } from './util'
-
-export function asCreateOptions (options) {
-  return pick(options, [
-    'bypassDocumentValidation',
-    'forceServerObjectId',
-    'j',
-    'serializeFunctions',
-    'session',
-    'w',
-    'wtimeout'
-  ])
+export function asCreateOptions ({
+  bypassDocumentValidation,
+  forceServerObjectId,
+  serializeFunctions,
+  session,
+  writeConcern
+}) {
+  return {
+    bypassDocumentValidation,
+    forceServerObjectId,
+    serializeFunctions,
+    session,
+    writeConcern
+  }
 }
 
-export function asReadOptions (options) {
-  return pick(options, [
-    'limit',
-    'sort',
-    'projection',
-    'fields',
-    'skip',
-    'hint',
-    'explain',
-    'snapshot',
-    'timeout',
-    'tailable',
-    'batchSize',
-    'returnKey',
-    'maxScan',
-    'min',
-    'max',
-    'showDiskLoc',
-    'comment',
-    'raw',
-    'promoteLongs',
-    'promoteValues',
-    'promoteBuffers',
-    'readPreference',
-    'partial',
-    'maxTimeMS',
-    'collation',
-    'session'
-  ])
+export function asReadOptions ({
+  awaitData,
+  batchSize,
+  collation,
+  comment,
+  explain,
+  hint,
+  limit,
+  max,
+  maxTimeMS,
+  min,
+  partial,
+  projection,
+  promoteBuffers,
+  promoteLongs,
+  promoteValues,
+  readPreference,
+  returnKey,
+  session,
+  showDiskLoc,
+  skip,
+  sort,
+  tailable,
+  timeout
+}) {
+  return {
+    awaitData,
+    batchSize,
+    collation,
+    comment,
+    explain,
+    hint,
+    limit,
+    max,
+    maxTimeMS,
+    min,
+    partial,
+    projection,
+    promoteBuffers,
+    promoteLongs,
+    promoteValues,
+    readPreference,
+    returnKey,
+    session,
+    showDiskLoc,
+    skip,
+    sort,
+    tailable,
+    timeout
+  }
 }
 
-export function asUpdateOptions (options) {
-  return pick(options, [
-    'arrayFilters',
-    'bypassDocumentValidation',
-    'j',
-    'session',
-    'upsert',
-    'w',
-    'wtimeout'
-  ])
+export function asUpdateOptions ({
+  arrayFilters,
+  bypassDocumentValidation,
+  session,
+  upsert,
+  writeConcern
+}) {
+  return {
+    arrayFilters,
+    bypassDocumentValidation,
+    session,
+    upsert,
+    writeConcern
+  }
 }
 
-export function asDeleteOptions (options) {
-  return pick(options, [
-    'j',
-    'session',
-    'w',
-    'wtimeout'
-  ])
+export function asDeleteOptions ({ session, writeConcern }) {
+  return {
+    session,
+    writeConcern
+  }
 }
