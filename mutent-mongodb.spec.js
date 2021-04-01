@@ -1,6 +1,6 @@
 const test = require('ava')
 
-const { createMongoAdapter } =  require('./mutent-mongodb')
+const { MongoAdapter } =  require('./mutent-mongodb')
 
 test('find', async t => {
   t.plan(3)
@@ -13,7 +13,7 @@ test('find', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection)
+  const adapter = MongoAdapter.create(collection)
 
   const doc = await adapter.find(
     { _id: 'my_doc' },
@@ -34,7 +34,7 @@ test('filter', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection)
+  const adapter = MongoAdapter.create(collection)
 
   const iterable = adapter.filter(
     { _id: { $in: ['my_documents'] } },
@@ -68,7 +68,7 @@ test('create', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection)
+  const adapter = MongoAdapter.create(collection)
 
   await adapter.create(
     {
@@ -129,7 +129,7 @@ test('update', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection)
+  const adapter = MongoAdapter.create(collection)
 
   await adapter.update(
     {
@@ -179,7 +179,7 @@ test('replace', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection, { replace: true })
+  const adapter = MongoAdapter.create(collection, { replace: true })
 
   await adapter.update(
     {  _id: 'test' },
@@ -199,7 +199,7 @@ test('delete', async t => {
     }
   }
 
-  const adapter = createMongoAdapter(collection)
+  const adapter = MongoAdapter.create(collection)
 
   await adapter.delete(
     { _id: 'test' },

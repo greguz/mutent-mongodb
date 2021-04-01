@@ -1,1 +1,1 @@
-export { createMongoAdapter } from './adapter'
+export { MongoAdapter } from './adapter'
