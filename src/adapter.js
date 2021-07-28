@@ -1,11 +1,4 @@
 import { buildUpdateQuery, compareValues } from './diff'
-import {
-  asBulkOptions,
-  asCreateOptions,
-  asDeleteOptions,
-  asReadOptions,
-  asUpdateOptions
-} from './options'
 import { stripUndefinedValues } from './undefined'
 
 function opInsertOne ({ data }) {
@@ -63,30 +56,6 @@ function createBulkOperation (action, options, replace) {
   }
 }
 
-function handleBulkResult (action, index, { insertedIds, upsertedIds }) {
-  const data = action.type === 'UPDATE' ? action.newData : action.data
-
-  for (const item of insertedIds) {
-    if (item.index === index) {
-      return {
-        ...data,
-        _id: item._id
-      }
-    }
-  }
-
-  for (const item of upsertedIds) {
-    if (item.index === index) {
-      return {
-        ...data,
-        _id: item._id
-      }
-    }
-  }
-
-  return data
-}
-
 export class MongoAdapter {
   static create (collection, options) {
     return new MongoAdapter(collection, options)
@@ -98,68 +67,80 @@ export class MongoAdapter {
     this.replace = !!replace
   }
 
-  find (query, options) {
-    return this.collection.findOne(query, asReadOptions(options))
+  find (query, options = {}) {
+    return this.collection.findOne(query, options)
   }
 
-  filter (query, options) {
-    return this.collection.find(query, asReadOptions(options))
+  filter (query, options = {}) {
+    return this.collection.find(query, options)
   }
 
-  async create (data, options) {
-    const { ops } = await this.collection.insertOne(
+  async create (data, options = {}) {
+    const { insertedId } = await this.collection.insertOne(
       stripUndefinedValues(data),
-      asCreateOptions(options)
+      options
     )
-    return ops[0]
+    return {
+      ...data,
+      _id: insertedId
+    }
   }
 
-  async update (oldData, newData, options) {
+  async update (oldData, newData, options = {}) {
     if (this.replace) {
       const { matchedCount } = await this.collection.replaceOne(
         { _id: oldData._id },
         stripUndefinedValues(newData),
-        asUpdateOptions(options)
+        options
       )
       if (matchedCount !== 1 && !this.relax) {
         throw new Error(`Expected update ack for document ${oldData._id}`)
       }
     } else {
       const items = compareValues(oldData, newData)
-      if (items.length <= 0) {
-        return newData
-      }
-
-      const { matchedCount } = await this.collection.updateOne(
-        { _id: oldData._id },
-        buildUpdateQuery(items),
-        asUpdateOptions(options)
-      )
-      if (matchedCount !== 1 && !this.relax) {
-        throw new Error(`Expected replace ack for document ${oldData._id}`)
+      if (items.length > 0) {
+        const { matchedCount } = await this.collection.updateOne(
+          { _id: oldData._id },
+          buildUpdateQuery(items),
+          options
+        )
+        if (matchedCount !== 1 && !this.relax) {
+          throw new Error(`Expected replace ack for document ${oldData._id}`)
+        }
       }
     }
   }
 
-  async delete (data, options) {
+  async delete (data, options = {}) {
     const { deletedCount } = await this.collection.deleteOne(
       { _id: data._id },
-      asDeleteOptions(options)
+      options
     )
     if (deletedCount !== 1 && !this.relax) {
       throw new Error(`Expected delete ack for document ${data._id}`)
     }
   }
 
-  async bulk (actions, options) {
+  async bulk (actions, options = {}) {
     const result = await this.collection.bulkWrite(
       actions.map(
         action => createBulkOperation(action, options, this.replace)
       ),
-      asBulkOptions(options)
+      options
     )
-    return actions.map(
-      (action, index) => handleBulkResult(action, index, result)
-    )
+
+    const insertedIds = result.insertedIds || {}
+    const upsertedIds = result.upsertedIds || {}
+
+    return actions.map((action, index) => {
+      const data = action.type === 'UPDATE' ? action.newData : action.data
+      if (insertedIds[index]) {
+        return { ...data, _id: insertedIds[index] }
+      } else if (upsertedIds[index]) {
+        return { ...data, _id: upsertedIds[index] }
+      } else {
+        return data
+      }
+    })
   }
 }

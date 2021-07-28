@@ -1,143 +1,120 @@
 const test = require('ava')
+const { MongoClient } = require('mongodb')
 
-const { MongoAdapter } =  require('./mutent-mongodb')
+const { MongoAdapter } = require('./mutent-mongodb')
+
+let client
+let db
+let collection
+
+test.before(async () => {
+  client = await MongoClient.connect(process.env.MONGO_URL)
+  db = client.db(process.env.MONGO_DATABASE || 'mutent-mongodb')
+  collection = db.collection(process.env.MONGO_COLLECTION || 'mutent-mongodb')
+})
+
+test.after.always(async () => {
+  await collection.drop()
+  await client.close(true)
+})
 
 test('find', async t => {
-  t.plan(3)
+  t.plan(1)
 
-  const collection = {
-    async findOne (query, options) {
-      t.deepEqual(query, { _id: 'my_doc' })
-      t.deepEqual(options, { session: 'test' })
-      return { a: 'document' }
-    }
-  }
+  const { insertedId } = await collection.insertOne({ test: 'find' })
 
   const adapter = MongoAdapter.create(collection)
 
-  const doc = await adapter.find(
-    { _id: 'my_doc' },
-    { session: 'test', shit: true }
-  )
+  const document = await adapter.find({ _id: insertedId })
 
-  t.deepEqual(doc, { a: 'document' })
+  t.deepEqual(document, {
+    _id: insertedId,
+    test: 'find'
+  })
 })
 
 test('filter', async t => {
-  t.plan(3)
+  t.plan(2)
 
-  const collection = {
-    find (query, options) {
-      t.deepEqual(query, { _id: { $in: ['my_documents'] } })
-      t.deepEqual(options, { session: 'test' })
-      return [{ my: 'documents' }]
-    }
-  }
+  const { insertedIds } = await collection.insertMany([
+    { test: 'filter', index: 2 },
+    { test: 'filter', index: 0 },
+    { test: 'filter', index: 1 }
+  ])
 
   const adapter = MongoAdapter.create(collection)
 
   const iterable = adapter.filter(
-    { _id: { $in: ['my_documents'] } },
-    { session: 'test', shit: true }
+    {
+      _id: {
+        $in: Object.values(insertedIds)
+      }
+    },
+    {
+      sort: {
+        index: 1
+      }
+    }
   )
 
-  t.deepEqual(iterable, [{ my: 'documents' }])
+  t.true(iterable[Symbol.asyncIterator] !== undefined)
+
+  const documents = []
+  for await (const document of iterable) {
+    documents.push(document)
+  }
+
+  t.deepEqual(documents, [
+    { _id: insertedIds[1], test: 'filter', index: 0 },
+    { _id: insertedIds[2], test: 'filter', index: 1 },
+    { _id: insertedIds[0], test: 'filter', index: 2 }
+  ])
 })
 
 test('create', async t => {
-  t.plan(2)
-
-  const collection = {
-    async insertOne (data, options) {
-      t.deepEqual(data, {
-        a: 'document',
-        b: null,
-        d: {
-          e: 'object',
-          f: null
-        },
-        h: [
-          {
-            i: 'item',
-            j: null
-          }
-        ]
-      })
-      t.deepEqual(options, { session: 'test' })
-      return { ops: [data] }
-    }
-  }
+  t.plan(1)
 
   const adapter = MongoAdapter.create(collection)
 
-  await adapter.create(
-    {
-      a: 'document',
-      b: null,
-      c: undefined,
-      d: {
-        e: 'object',
-        f: null,
-        g: undefined
-      },
-      h: [
-        {
-          i: 'item',
-          j: null,
-          k: undefined
-        }
-      ]
+  const a = await adapter.create({
+    test: 'create',
+    a: 'document',
+    b: null,
+    c: undefined,
+    d: {
+      e: 'object',
+      f: null,
+      g: undefined
     },
-    {
-      session: 'test',
-      shit: true
-    }
-  )
+    h: [
+      {
+        i: 'item',
+        j: null,
+        k: undefined
+      }
+    ]
+  })
+
+  const b = await collection.findOne({ _id: a._id })
+
+  t.deepEqual(a, b)
 })
 
 test('update', async t => {
-  t.plan(3)
-
-  const collection = {
-    async updateOne (filter, update, options) {
-      t.deepEqual(filter, {
-        _id: 'test'
-      })
-      t.deepEqual(update, {
-        $set: {
-          a: 'document',
-          b: null,
-          d: {
-            e: 'object',
-            f: null
-          },
-          h: [
-            {
-              i: 'item',
-              j: null
-            }
-          ]
-        },
-        $unset: {
-          bye: ''
-        }
-      })
-      t.deepEqual(options, {
-        session: 'test'
-      })
-      return { matchedCount: 1 }
-    }
-  }
+  t.plan(1)
 
   const adapter = MongoAdapter.create(collection)
 
+  const { insertedId } = await collection.insertOne({ test: 'update' })
+
   await adapter.update(
     {
-      _id: 'test',
-      bye: true
+      _id: insertedId,
+      test: 'update'
     },
     {
-      _id: 'test',
+      _id: insertedId,
+      test: 'update',
       a: 'document',
       b: null,
       c: undefined,
@@ -153,56 +130,107 @@ test('update', async t => {
           k: undefined
         }
       ]
-    },
-    {
-      session: 'test',
-      shit: true
     }
   )
 
-  await adapter.update(
-    { a: 'document' },
-    { a: 'document' },
-    { session: 'test', shit: true }
-  )
+  const document = await collection.findOne({ _id: insertedId })
+
+  t.deepEqual(document, {
+    _id: insertedId,
+    test: 'update',
+    a: 'document',
+    b: null,
+    d: {
+      e: 'object',
+      f: null
+    },
+    h: [
+      {
+        i: 'item',
+        j: null
+      }
+    ]
+  })
 })
 
 test('replace', async t => {
-  t.plan(3)
+  t.plan(1)
 
-  const collection = {
-    async replaceOne (filter, document, options) {
-      t.deepEqual(filter, { _id: 'test' })
-      t.deepEqual(document, { _id: 'test', my: 'value' })
-      t.deepEqual(options, { session: 'test' })
-      return { matchedCount: 1 }
-    }
-  }
+  const { insertedId } = await collection.insertOne({ test: 'replace' })
 
   const adapter = MongoAdapter.create(collection, { replace: true })
 
   await adapter.update(
-    {  _id: 'test' },
-    {  _id: 'test', my: 'value' },
-    { session: 'test', shit: true }
+    {
+      _id: insertedId,
+      test: 'replace'
+    },
+    {
+      _id: insertedId,
+      test: 'replace',
+      replaced: true
+    }
   )
+
+  const document = await collection.findOne({ _id: insertedId })
+
+  t.deepEqual(document, {
+    _id: insertedId,
+    test: 'replace',
+    replaced: true
+  })
 })
 
 test('delete', async t => {
-  t.plan(2)
+  t.plan(1)
 
-  const collection = {
-    async deleteOne (filter, options) {
-      t.deepEqual(filter, { _id: 'test' })
-      t.deepEqual(options, { session: 'test' })
-      return { deletedCount: 1 }
-    }
-  }
+  const { insertedId } = await collection.insertOne({ test: 'delete' })
 
   const adapter = MongoAdapter.create(collection)
 
-  await adapter.delete(
-    { _id: 'test' },
-    { session: 'test', shit: true }
+  await adapter.delete({ _id: insertedId })
+
+  const document = await collection.findOne({ _id: insertedId })
+
+  t.true(!document)
+})
+
+test('bulk', async t => {
+  t.plan(1)
+
+  const { insertedIds } = await collection.insertMany([
+    { test: 'bulk', index: 0 },
+    { test: 'bulk', index: 1 }
+  ])
+
+  const adapter = MongoAdapter.create(collection)
+
+  const document = await collection.findOne({ _id: insertedIds[0] })
+
+  const documents = await adapter.bulk(
+    [
+      {
+        type: 'CREATE',
+        data: {
+          test: 'bulk',
+          index: 2
+        }
+      },
+      {
+        type: 'UPDATE',
+        oldData: document,
+        newData: {
+          ...document,
+          index: 3
+        }
+      },
+      {
+        type: 'DELETE',
+        data: await collection.findOne({ _id: insertedIds[1] })
+      }
+    ],
+    { upsert: true }
   )
+
+  t.true(Array.isArray(documents))
 })
