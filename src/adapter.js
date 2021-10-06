@@ -10,12 +10,16 @@ function opInsertOne ({ data }) {
 }
 
 function opUpdateOne ({ oldData, newData }, { upsert }) {
+  const items = compareValues(oldData, newData)
+  if (items.length <= 0) {
+    return null
+  }
   return {
     updateOne: {
       filter: {
         _id: oldData._id
       },
-      update: buildUpdateQuery(compareValues(oldData, newData)),
+      update: buildUpdateQuery(items),
       upsert
     }
   }
@@ -122,12 +126,13 @@ export class MongoAdapter {
   }
 
   async bulk (actions, options = {}) {
-    const result = await this.collection.bulkWrite(
-      actions.map(
-        action => createBulkOperation(action, options, this.replace)
-      ),
-      options
-    )
+    const ops = actions
+      .map(action => createBulkOperation(action, options, this.replace))
+      .filter(op => op !== null)
+
+    const result = ops.length > 0
+      ? await this.collection.bulkWrite(ops, options)
+      : {}
 
     const insertedIds = result.insertedIds || {}
     const upsertedIds = result.upsertedIds || {}
