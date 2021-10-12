@@ -126,26 +126,44 @@ export class MongoAdapter {
   }
 
   async bulk (actions, options = {}) {
-    const ops = actions
-      .map(action => createBulkOperation(action, options, this.replace))
-      .filter(op => op !== null)
+    const map = new Map()
+    const ops = []
 
-    const result = ops.length > 0
-      ? await this.collection.bulkWrite(ops, options)
-      : {}
+    // Map Mutent actions to MongoDB bulk ops
+    for (let index = 0; index < actions.length; index++) {
+      const op = createBulkOperation(actions[index], options, this.replace)
+      if (op) {
+        map.set(index.toString(), ops.length.toString())
+        ops.push(op)
+      }
+    }
+
+    // Skip everything if no ops
+    if (ops.length <= 0) {
+      return
+    }
+
+    const result = await this.collection.bulkWrite(ops, options)
 
     const insertedIds = result.insertedIds || {}
     const upsertedIds = result.upsertedIds || {}
 
-    return actions.map((action, index) => {
+    return actions.map((action, sourceIndex) => {
+      // Resolve the action's index to the bulk op's index
+      const targetIndex = map.get(sourceIndex.toString())
+
+      // Retrieve action's final data
       const data = action.type === 'UPDATE' ? action.newData : action.data
-      if (insertedIds[index]) {
-        return { ...data, _id: insertedIds[index] }
-      } else if (upsertedIds[index]) {
-        return { ...data, _id: upsertedIds[index] }
-      } else {
-        return data
+
+      // Returns the entity's data
+      if (targetIndex) {
+        if (insertedIds[targetIndex]) {
+          return { ...data, _id: insertedIds[targetIndex] }
+        } else if (upsertedIds[targetIndex]) {
+          return { ...data, _id: upsertedIds[targetIndex] }
+        }
       }
+      return data
     })
   }
 }

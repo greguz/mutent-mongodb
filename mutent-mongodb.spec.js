@@ -200,33 +200,40 @@ test('bulk', async t => {
 
   const { insertedIds } = await collection.insertMany([
     { test: 'bulk', index: 0 },
-    { test: 'bulk', index: 1 }
+    { test: 'bulk', index: 1 },
+    { test: 'bulk', index: 2 }
   ])
 
   const adapter = MongoAdapter.create(collection)
 
-  const document = await collection.findOne({ _id: insertedIds[0] })
+  const a = await collection.findOne({ _id: insertedIds[0] })
+  const b = await collection.findOne({ _id: insertedIds[1] })
 
   const documents = await adapter.bulk(
     [
       {
+        type: 'UPDATE',
+        oldData: a,
+        newData: a
+      },
+      {
         type: 'CREATE',
         data: {
           test: 'bulk',
-          index: 2
-        }
-      },
-      {
-        type: 'UPDATE',
-        oldData: document,
-        newData: {
-          ...document,
           index: 3
         }
       },
       {
+        type: 'UPDATE',
+        oldData: b,
+        newData: {
+          ...b,
+          updated: true
+        }
+      },
+      {
         type: 'DELETE',
-        data: await collection.findOne({ _id: insertedIds[1] })
+        data: await collection.findOne({ _id: insertedIds[2] })
       }
     ],
     { upsert: true }
