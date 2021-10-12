@@ -21,9 +21,6 @@
   ],
   "author": "Giacomo Gregoletto",
   "license": "MIT",
-  "peerDependencies": {
-    "mutent": "^5.0.0"
-  },
   "devDependencies": {
     "ava": "^3.14.0",
     "eslint": "^7.31.0",
