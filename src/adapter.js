@@ -61,14 +61,15 @@ function createBulkOperation (action, options, replace) {
 }
 
 export class MongoAdapter {
-  static create (collection, options) {
-    return new MongoAdapter(collection, options)
-  }
-
-  constructor (collection, { relax, replace } = {}) {
+  constructor (options) {
+    const { collection, replace, strictDelete, strictUpdate } = Object(options)
+    if (!collection) {
+      throw new Error('Collection is mandatory')
+    }
     this.collection = collection
-    this.relax = !!relax
     this.replace = !!replace
+    this.strictDelete = !!strictDelete
+    this.strictUpdate = !!strictUpdate
   }
 
   find (query, options = {}) {
@@ -97,8 +98,8 @@ export class MongoAdapter {
         stripUndefinedValues(newData),
         options
       )
-      if (matchedCount !== 1 && !this.relax) {
-        throw new Error(`Expected update ack for document ${oldData._id}`)
+      if (matchedCount < 1 && this.strictUpdate) {
+        throw new Error(`Expected replace ack for document ${oldData._id}`)
       }
     } else {
       const items = compareValues(oldData, newData)
@@ -108,8 +109,8 @@ export class MongoAdapter {
           buildUpdateQuery(items),
           options
         )
-        if (matchedCount !== 1 && !this.relax) {
-          throw new Error(`Expected replace ack for document ${oldData._id}`)
+        if (matchedCount < 1 && this.strictUpdate) {
+          throw new Error(`Expected update ack for document ${oldData._id}`)
         }
       }
     }
@@ -120,7 +121,7 @@ export class MongoAdapter {
       { _id: data._id },
       options
     )
-    if (deletedCount !== 1 && !this.relax) {
+    if (deletedCount < 1 && this.strictDelete) {
       throw new Error(`Expected delete ack for document ${data._id}`)
     }
   }
@@ -145,8 +146,8 @@ export class MongoAdapter {
 
     const result = await this.collection.bulkWrite(ops, options)
 
-    const insertedIds = result.insertedIds || {}
-    const upsertedIds = result.upsertedIds || {}
+    const insertedIds = Object(result.insertedIds)
+    const upsertedIds = Object(result.upsertedIds)
 
     return actions.map((action, sourceIndex) => {
       // Resolve the action's index to the bulk op's index

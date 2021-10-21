@@ -4,25 +4,25 @@ Mutent adapter for MongoDB collections.
 
 ```javascript
 import { Store } from 'mutent'
-import { MongoAdapter } from 'mutent-mongodb'
-
-// TODO: Get a MongoDB collection somehow..
-
-const adapter = new MongoAdapter(collection, {
-  /**
-   * Do not throw an error when a write action (insertOne, updateOne, deleteOne) does not match any document.
-   * @default false
-   */
-  relax: false,
-  /**
-   * Always replace the whole document (replaceOne) instead of just update changed fields (updateOne).
-   * @default false
-   */
-  replace: false
-})
+import MongoAdapter from 'mutent-mongodb'
 
 const store = new Store({
-  name: 'MyCollectionStore',
-  adapter
+  adapter: new MongoAdapter({
+    // MongoDB's collection instance.
+    collection: myCollection,
+    // Replace the whole document instead of just update the changed properties.
+    replace: false,
+    // Throw an error when an update request does not match any document.
+    strictUpdate: false,
+    // Throw an error when a delete request does not match any document.
+    strictDelete: false
+  })
 })
+
+store
+  .create({ my: 'document' })
+  .unwrap()
+  .then(data => {
+    console.log(`Created document ${data._id}`)
+  })
 ```
