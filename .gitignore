@@ -1,5 +1,4 @@
-/.vscode
-/mutent-mongodb.js
+/mutent-mongodb.cjs
 /node_modules
 /package-lock.json
 /ava.config.js

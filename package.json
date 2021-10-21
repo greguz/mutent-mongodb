@@ -1,15 +1,21 @@
 {
   "name": "mutent-mongodb",
   "version": "0.10.2",
-  "description": "Mutent MongoDB driver",
-  "main": "mutent-mongodb.js",
-  "types": "mutent-mongodb.d.ts",
+  "description": "MongoDB adapter for Mutent",
+  "type": "module",
+  "main": "./mutent-mongodb.cjs",
+  "exports": {
+    "import": "./mutent-mongodb.mjs",
+    "require": "./mutent-mongodb.cjs"
+  },
+  "types": "./mutent-mongodb.d.ts",
   "files": [
-    "mutent-mongodb.js",
+    "mutent-mongodb.cjs",
+    "mutent-mongodb.mjs",
     "mutent-mongodb.d.ts"
   ],
   "scripts": {
-    "lint": "standard src *.spec.js",
+    "lint": "standard **/*.mjs",
     "build": "rollup -c",
     "test": "ava",
     "prepublishOnly": "npm run lint && npm run build"
@@ -26,7 +32,7 @@
     "mutent": "5.0.0-9"
   },
   "devDependencies": {
-    "ava": "^3.15.0",
+    "ava": "4.0.0-alpha.2",
     "mongodb": "^4.1.3",
     "mutent": "5.0.0-9",
     "rollup": "^2.58.0",

@@ -45,7 +45,7 @@ export interface MongoAdapterOptions<T> {
   strictUpdate?: boolean;
 }
 
-export class MongoAdapter<T>
+export default class MongoAdapter<T>
   implements Adapter<T, MongoQuery<T>, MongoOptions<T>>
 {
   constructor(options: MongoAdapterOptions<T>);

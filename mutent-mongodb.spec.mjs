@@ -1,7 +1,7 @@
-const test = require('ava')
-const { MongoClient } = require('mongodb')
+import test from 'ava'
+import { MongoClient } from 'mongodb'
 
-const { MongoAdapter } = require('./mutent-mongodb')
+import MongoAdapter from './mutent-mongodb.mjs'
 
 let client
 let db

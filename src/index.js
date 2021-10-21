@@ -1,1 +1,0 @@
-export { MongoAdapter } from './adapter'

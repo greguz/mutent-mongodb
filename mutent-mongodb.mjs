@@ -1,5 +1,105 @@
-import { buildUpdateQuery, compareValues } from './diff'
-import { stripUndefinedValues } from './undefined'
+function flatten (array) {
+  return array.reduce((acc, item) => acc.concat(item), [])
+}
+
+function isPlainObject (value) {
+  return Object.prototype.toString.call(value) === '[object Object]'
+}
+
+function uniq (values) {
+  return values.reduce(
+    (acc, value) => acc.includes(value) ? acc : [...acc, value],
+    []
+  )
+}
+
+function stripUndefinedValues (obj) {
+  if (isPlainObject(obj)) {
+    for (const key of Object.keys(obj)) {
+      const val = obj[key]
+      if (val === undefined) {
+        delete obj[key]
+      } else {
+        stripUndefinedValues(val)
+      }
+    }
+  } else if (Array.isArray(obj)) {
+    obj.forEach(stripUndefinedValues)
+  }
+
+  return obj
+}
+
+function setDeep (obj, k1, k2, value) {
+  if (obj[k1] === undefined) {
+    obj[k1] = {}
+  }
+  obj[k1][k2] = value
+  return obj
+}
+
+function compareValues (oldValue, newValue, path = []) {
+  if (oldValue === newValue) {
+    return []
+  } else if (isPlainObject(oldValue) && isPlainObject(newValue)) {
+    return flatten(
+      uniq(Object.keys(oldValue).concat(Object.keys(newValue))).map(key =>
+        compareValues(oldValue[key], newValue[key], [...path, key])
+      )
+    )
+  } else if (Array.isArray(oldValue) && Array.isArray(newValue)) {
+    if (newValue.length === 0 || newValue.length < oldValue.length) {
+      return [
+        {
+          path,
+          oldValue,
+          newValue
+        }
+      ]
+    }
+
+    const items = []
+
+    const min = oldValue.length < newValue.length
+      ? oldValue.length
+      : newValue.length
+    for (let i = 0; i < min; i++) {
+      items.push(...compareValues(oldValue[i], newValue[i], [...path, i]))
+    }
+
+    const max = oldValue.length > newValue.length
+      ? oldValue.length
+      : newValue.length
+    for (let i = min; i < max; i++) {
+      items.push({
+        path: [...path, i],
+        oldValue: undefined,
+        newValue: newValue[i]
+      })
+    }
+
+    return items
+  } else {
+    return [
+      {
+        path,
+        oldValue,
+        newValue
+      }
+    ]
+  }
+}
+
+function buildUpdateQuery (items) {
+  return items.reduce(
+    (query, { path, newValue }) => {
+      return newValue === undefined
+        ? setDeep(query, '$unset', path.join('.'), '')
+        : setDeep(query, '$set', path.join('.'), stripUndefinedValues(newValue))
+    },
+    {}
+  )
+}
 
 function opInsertOne ({ data }) {
   return {
@@ -60,7 +160,7 @@ function createBulkOperation (action, options, replace) {
   }
 }
 
-export class MongoAdapter {
+export default class MongoAdapter {
   constructor (options) {
     const { collection, replace, strictDelete, strictUpdate } = Object(options)
     if (!collection) {
