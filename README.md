@@ -1,5 +1,8 @@
 # mutent-mongodb
 
+[![npm](https://img.shields.io/npm/v/mutent-mongodb)](https://www.npmjs.com/package/mutent-mongodb)
+[![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+
 Mutent adapter for MongoDB collections.
 
 ```javascript

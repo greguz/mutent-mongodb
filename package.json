@@ -13,7 +13,7 @@
   "files": [
     "mutent-mongodb.cjs",
     "mutent-mongodb.mjs",
-    "mutent-mongodb.d.mts"
+    "mutent-mongodb.d.ts"
   ],
   "scripts": {
     "lint": "standard **/*.mjs",
