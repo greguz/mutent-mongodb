@@ -4,15 +4,16 @@
   "description": "MongoDB adapter for Mutent",
   "type": "module",
   "main": "./mutent-mongodb.cjs",
+  "types": "./mutent-mongodb.d.ts",
   "exports": {
     "import": "./mutent-mongodb.mjs",
-    "require": "./mutent-mongodb.cjs"
+    "require": "./mutent-mongodb.cjs",
+    "types": "./mutent-mongodb.d.ts"
   },
-  "types": "./mutent-mongodb.d.ts",
   "files": [
     "mutent-mongodb.cjs",
     "mutent-mongodb.mjs",
-    "mutent-mongodb.d.ts"
+    "mutent-mongodb.d.mts"
   ],
   "scripts": {
     "lint": "standard **/*.mjs",
@@ -28,15 +29,17 @@
   ],
   "author": "Giacomo Gregoletto",
   "license": "MIT",
+  "dependencies": {
+    "mongodb": "^4.11.0"
+  },
   "peerDependencies": {
-    "mutent": "5.0.0-9"
+    "mutent": "^5.0.0"
   },
   "devDependencies": {
-    "ava": "4.0.0-alpha.2",
-    "mongodb": "^4.1.3",
-    "mutent": "5.0.0-9",
-    "rollup": "^2.58.0",
-    "standard": "^16.0.4"
+    "ava": "^5.0.1",
+    "mutent": "^5.0.0",
+    "rollup": "^3.2.5",
+    "standard": "^17.0.0"
   },
   "repository": {
     "type": "git",

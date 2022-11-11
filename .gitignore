@@ -1,4 +1,7 @@
-/mutent-mongodb.cjs
-/node_modules
-/package-lock.json
-/ava.config.js
+.*
+!.gitignore
+ava.config.js
+mutent-mongodb.cjs
+node_modules
+package-lock.json
+yarn.lock

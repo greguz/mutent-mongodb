@@ -160,7 +160,11 @@ function createBulkOperation (action, options, replace) {
   }
 }
 
-export default class MongoAdapter {
+export class MongoAdapter {
+  get [Symbol.for('adapter-name')] () {
+    return `MongoDB@${this.collection.dbName}:${this.collection.collectionName}`
+  }
+
   constructor (options) {
     const { collection, replace, strictDelete, strictUpdate } = Object(options)
     if (!collection) {

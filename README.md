@@ -4,7 +4,7 @@ Mutent adapter for MongoDB collections.
 
 ```javascript
 import { Store } from 'mutent'
-import MongoAdapter from 'mutent-mongodb'
+import { MongoAdapter } from 'mutent-mongodb'
 
 const store = new Store({
   adapter: new MongoAdapter({

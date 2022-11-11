@@ -10,12 +10,28 @@ import {
   ReplaceOptions,
   UpdateOptions,
 } from "mongodb";
-import { Adapter, BulkAction, Store } from "mutent";
+import { Adapter, BulkAction, Generics, Store } from "mutent";
 
-export declare type MongoStore<T> = Store<T, MongoQuery<T>, MongoOptions<T>>;
+export interface MongoGenerics<T> extends Generics {
+  adapter: MongoAdapter<T>;
+  entity: T;
+  query: MongoQuery<T>;
+  options: MongoOptions<T>;
+}
 
+/**
+ * Mutent's Store preconfigured with MongoDB types.
+ */
+export declare type MongoStore<T> = Store<MongoGenerics<T>>;
+
+/**
+ * Accepted query type by Mutent's Store instance.
+ */
 export declare type MongoQuery<T> = Filter<T>;
 
+/**
+ * Store's unwrap options.
+ */
 export interface MongoOptions<T>
   extends BulkWriteOptions,
     DeleteOptions,
@@ -27,27 +43,29 @@ export interface MongoAdapterOptions<T> {
   /**
    * MongoDB's collection instance.
    */
-  collection: Collection<T>;
+  collection?: Collection<T>;
   /**
    * Replace the whole document instead of just update the changed properties.
+   *
    * @default false
    */
   replace?: boolean;
   /**
    * Throw an error when a delete request does not match any document.
+   *
    * @default false
    */
   strictDelete?: boolean;
   /**
    * Throw an error when an update request does not match any document.
+   *
    * @default false
    */
   strictUpdate?: boolean;
 }
 
-export default class MongoAdapter<T>
-  implements Adapter<T, MongoQuery<T>, MongoOptions<T>>
-{
+export class MongoAdapter<T> implements Adapter<Generics> {
+  collection: Collection<T>;
   constructor(options: MongoAdapterOptions<T>);
   find(query: MongoQuery<T>, options?: MongoOptions<T>): Promise<T>;
   filter(query: MongoQuery<T>, options?: MongoOptions<T>): AsyncIterable<T>;
