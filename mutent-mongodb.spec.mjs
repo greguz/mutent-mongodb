@@ -1,7 +1,7 @@
 import test from 'ava'
 import { MongoClient } from 'mongodb'
 
-import MongoAdapter from './mutent-mongodb.mjs'
+import { MongoAdapter } from './mutent-mongodb.mjs'
 
 let client
 let db
@@ -23,7 +23,7 @@ test('find', async t => {
 
   const { insertedId } = await collection.insertOne({ test: 'find' })
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   const document = await adapter.find({ _id: insertedId })
 
@@ -42,7 +42,7 @@ test('filter', async t => {
     { test: 'filter', index: 1 }
   ])
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   const iterable = adapter.filter(
     {
@@ -74,7 +74,7 @@ test('filter', async t => {
 test('create', async t => {
   t.plan(1)
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   const a = await adapter.create({
     test: 'create',
@@ -103,7 +103,7 @@ test('create', async t => {
 test('update', async t => {
   t.plan(1)
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   const { insertedId } = await collection.insertOne({ test: 'update' })
 
@@ -158,7 +158,7 @@ test('replace', async t => {
 
   const { insertedId } = await collection.insertOne({ test: 'replace' })
 
-  const adapter = MongoAdapter.create(collection, { replace: true })
+  const adapter = new MongoAdapter({ collection, replace: true })
 
   await adapter.update(
     {
@@ -186,7 +186,7 @@ test('delete', async t => {
 
   const { insertedId } = await collection.insertOne({ test: 'delete' })
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   await adapter.delete({ _id: insertedId })
 
@@ -204,7 +204,7 @@ test('bulk', async t => {
     { test: 'bulk', index: 2 }
   ])
 
-  const adapter = MongoAdapter.create(collection)
+  const adapter = new MongoAdapter({ collection })
 
   const a = await collection.findOne({ _id: insertedIds[0] })
   const b = await collection.findOne({ _id: insertedIds[1] })

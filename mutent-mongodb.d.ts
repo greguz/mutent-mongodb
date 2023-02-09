@@ -12,34 +12,34 @@ import {
 } from "mongodb";
 import { Adapter, BulkAction, Generics, Store } from "mutent";
 
-export interface MongoGenerics<T> extends Generics {
+export interface MongoGenerics<T extends object> extends Generics {
   adapter: MongoAdapter<T>;
   entity: T;
   query: MongoQuery<T>;
-  options: MongoOptions<T>;
+  options: MongoOptions;
 }
 
 /**
  * Mutent's Store preconfigured with MongoDB types.
  */
-export declare type MongoStore<T> = Store<MongoGenerics<T>>;
+export declare type MongoStore<T extends object> = Store<MongoGenerics<T>>;
 
 /**
  * Accepted query type by Mutent's Store instance.
  */
-export declare type MongoQuery<T> = Filter<T>;
+export declare type MongoQuery<T extends object> = Filter<T>;
 
 /**
  * Store's unwrap options.
  */
-export interface MongoOptions<T>
+export interface MongoOptions
   extends BulkWriteOptions,
     DeleteOptions,
-    FindOptions<T>,
+    FindOptions,
     ReplaceOptions,
     UpdateOptions {}
 
-export interface MongoAdapterOptions<T> {
+export interface MongoAdapterOptions<T extends object> {
   /**
    * MongoDB's collection instance.
    */
@@ -64,13 +64,13 @@ export interface MongoAdapterOptions<T> {
   strictUpdate?: boolean;
 }
 
-export class MongoAdapter<T> implements Adapter<Generics> {
+export class MongoAdapter<T extends object> implements Adapter<Generics> {
   collection: Collection<T>;
   constructor(options: MongoAdapterOptions<T>);
-  find(query: MongoQuery<T>, options?: MongoOptions<T>): Promise<T>;
-  filter(query: MongoQuery<T>, options?: MongoOptions<T>): AsyncIterable<T>;
-  create(data: T, options?: MongoOptions<T>): Promise<T>;
-  update(oldData: T, newData: T, options?: MongoOptions<T>): Promise<void>;
-  delete(data: T, options?: MongoOptions<T>): Promise<void>;
-  bulk(actions: Array<BulkAction<T>>, options?: MongoOptions<T>): Promise<T[]>;
+  find(query: MongoQuery<T>, options?: MongoOptions): Promise<T>;
+  filter(query: MongoQuery<T>, options?: MongoOptions): AsyncIterable<T>;
+  create(data: T, options?: MongoOptions): Promise<T>;
+  update(oldData: T, newData: T, options?: MongoOptions): Promise<void>;
+  delete(data: T, options?: MongoOptions): Promise<void>;
+  bulk(actions: Array<BulkAction<T>>, options?: MongoOptions): Promise<T[]>;
 }

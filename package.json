@@ -30,15 +30,15 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "dependencies": {
-    "mongodb": "^4.11.0"
+    "mongodb": "^5.0.1"
   },
   "peerDependencies": {
     "mutent": "^5.0.0"
   },
   "devDependencies": {
-    "ava": "^5.0.1",
-    "mutent": "^5.0.0",
-    "rollup": "^3.2.5",
+    "ava": "^5.2.0",
+    "mutent": "^5.0.1",
+    "rollup": "^3.14.0",
     "standard": "^17.0.0"
   },
   "repository": {
