@@ -1,0 +1,10 @@
+{
+  "all": true,
+  "reporter": ["html", "lcov", "text"],
+  "include": [
+    "mutent-mongodb.mjs"
+  ],
+  "exclude": [
+    "**/*.spec.mjs"
+  ]
+}

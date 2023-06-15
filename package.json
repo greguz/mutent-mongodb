@@ -18,8 +18,8 @@
   "scripts": {
     "lint": "standard **/*.mjs",
     "build": "rollup -c",
-    "test": "ava",
-    "prepublishOnly": "npm run lint && npm run build"
+    "test": "c8 ava",
+    "prepublishOnly": "npm run lint && npm run build && npm test"
   },
   "keywords": [
     "mutent",
@@ -35,7 +35,9 @@
   },
   "devDependencies": {
     "ava": "^5.3.0",
+    "c8": "^8.0.0",
     "mongodb": "^5.6.0",
+    "mql-match": "^0.7.1",
     "mutent": "^5.0.1",
     "rollup": "^3.25.1",
     "standard": "^17.1.0"

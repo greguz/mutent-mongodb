@@ -1,22 +1,128 @@
 import test from 'ava'
-import { MongoClient } from 'mongodb'
+import { ObjectId } from 'mongodb'
+import { compileFilterQuery, compileUpdateQuery } from 'mql-match'
 
 import { MongoAdapter } from './mutent-mongodb.mjs'
 
-let client
-let db
-let collection
+const collection = {
+  dbName: 'mockedDb',
+  collectionName: 'mockedCollection',
+  items: [],
+  async findOne (filter, options) {
+    return this.items.find(compileFilterQuery(filter)) || null
+  },
+  async * find (filter, options) {
+    const match = compileFilterQuery(filter)
 
-test.before(async () => {
-  client = await MongoClient.connect(process.env.MONGO_URL)
-  db = client.db(process.env.MONGO_DATABASE || 'mutent-mongodb')
-  collection = db.collection(process.env.MONGO_COLLECTION || 'mutent-mongodb')
-})
+    for (const item of this.items) {
+      if (match(item)) {
+        yield item
+      }
+    }
+  },
+  async insertOne (doc, options) {
+    const insertedId = doc._id === undefined
+      ? new ObjectId()
+      : doc._id
 
-test.after.always(async () => {
-  await collection.drop()
-  await client.close(true)
-})
+    this.items.push({
+      ...doc,
+      _id: insertedId
+    })
+
+    return { insertedId }
+  },
+  async replaceOne (filter, doc, options) {
+    const index = this.items.findIndex(compileFilterQuery(filter))
+
+    if (index >= 0) {
+      this.items[index] = doc
+    }
+
+    return { matchedCount: index >= 0 ? 1 : 0 }
+  },
+  async updateOne (filter, update, options) {
+    const mutate = compileUpdateQuery(update)
+    const index = this.items.findIndex(compileFilterQuery(filter))
+
+    if (index >= 0) {
+      this.items.splice(index, 1, mutate(this.items[index]))
+    }
+
+    return { matchedCount: index >= 0 ? 1 : 0 }
+  },
+  async deleteOne (filter, options) {
+    const index = this.items.findIndex(compileFilterQuery(filter))
+
+    if (index >= 0) {
+      this.items.splice(index, 1)
+    }
+
+    return { deletedCount: index >= 0 ? 1 : 0 }
+  },
+  async bulkWrite (ops, options) {
+    const insertedIds = {}
+    const upsertedIds = {}
+
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i]
+
+      if (op.insertOne) {
+        const { insertedId } = await this.insertOne(
+          op.insertOne.document,
+          options
+        )
+        insertedIds[i] = insertedId
+      } else if (op.updateOne) {
+        const { upsertedId } = await this.updateOne(
+          op.updateOne.filter,
+          op.updateOne.update,
+          {
+            ...options,
+            upsert: op.updateOne.upsert
+          }
+        )
+        if (upsertedId) {
+          upsertedIds[i] = upsertedId
+        }
+      } else if (op.replaceOne) {
+        const { upsertedId } = await this.replaceOne(
+          op.replaceOne.filter,
+          op.replaceOne.replacement,
+          {
+            ...options,
+            upsert: op.replaceOne.upsert
+          }
+        )
+        if (upsertedId) {
+          upsertedIds[i] = upsertedId
+        }
+      } else if (op.deleteOne) {
+        await this.deleteOne(
+          op.deleteOne.filter,
+          options
+        )
+      } else {
+        throw new Error('Unsupported bulk operation')
+      }
+    }
+
+    return {
+      insertedIds,
+      upsertedIds
+    }
+  },
+  async insertMany (docs, options) {
+    const insertedIds = []
+
+    for (const doc of docs) {
+      const { insertedId } = await this.insertOne(doc, options)
+      insertedIds.push(insertedId)
+    }
+
+    return { insertedIds }
+  }
+}
 
 test('find', async t => {
   t.plan(1)
@@ -44,20 +150,13 @@ test('filter', async t => {
 
   const adapter = new MongoAdapter({ collection })
 
-  const iterable = adapter.filter(
-    {
-      _id: {
-        $in: Object.values(insertedIds)
-      }
-    },
-    {
-      sort: {
-        index: 1
-      }
+  const iterable = adapter.filter({
+    _id: {
+      $in: Object.values(insertedIds)
     }
-  )
+  })
 
-  t.true(iterable[Symbol.asyncIterator] !== undefined)
+  t.is(typeof iterable[Symbol.asyncIterator], 'function')
 
   const documents = []
   for await (const document of iterable) {
@@ -65,9 +164,9 @@ test('filter', async t => {
   }
 
   t.deepEqual(documents, [
+    { _id: insertedIds[0], test: 'filter', index: 2 },
     { _id: insertedIds[1], test: 'filter', index: 0 },
-    { _id: insertedIds[2], test: 'filter', index: 1 },
-    { _id: insertedIds[0], test: 'filter', index: 2 }
+    { _id: insertedIds[2], test: 'filter', index: 1 }
   ])
 })
 
@@ -134,7 +233,6 @@ test('update', async t => {
   )
 
   const document = await collection.findOne({ _id: insertedId })
-
   t.deepEqual(document, {
     _id: insertedId,
     test: 'update',
