@@ -166,14 +166,11 @@ export class MongoAdapter {
   }
 
   constructor (options) {
-    const { collection, replace, strictDelete, strictUpdate } = Object(options)
-    if (!collection) {
-      throw new Error('Collection is mandatory')
-    }
-    this.collection = collection
-    this.replace = !!replace
-    this.strictDelete = !!strictDelete
-    this.strictUpdate = !!strictUpdate
+    options = Object(options)
+    this.collection = getCollection(options)
+    this.replace = !!options.replace
+    this.strictDelete = !!options.strictDelete
+    this.strictUpdate = !!options.strictUpdate
   }
 
   find (query, options = {}) {
@@ -270,5 +267,17 @@ export class MongoAdapter {
       }
       return data
     })
+  }
+}
+
+function getCollection ({ client, collection, collectionName, db, dbName }) {
+  if (collection) {
+    return collection
+  } else if (db && collectionName) {
+    return db.collection(collectionName)
+  } else if (client && collectionName) {
+    return client.db(dbName).collection(collectionName)
+  } else {
+    throw new Error('Unable to get a valid MongoDB collection')
   }
 }

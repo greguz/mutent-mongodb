@@ -29,17 +29,16 @@
   ],
   "author": "Giacomo Gregoletto",
   "license": "MIT",
-  "dependencies": {
-    "mongodb": "^5.0.1"
-  },
   "peerDependencies": {
+    "mongodb": "^5.0.0",
     "mutent": "^5.0.0"
   },
   "devDependencies": {
-    "ava": "^5.2.0",
+    "ava": "^5.3.0",
+    "mongodb": "^5.6.0",
     "mutent": "^5.0.1",
-    "rollup": "^3.14.0",
-    "standard": "^17.0.0"
+    "rollup": "^3.25.1",
+    "standard": "^17.1.0"
   },
   "repository": {
     "type": "git",

@@ -1,16 +1,18 @@
 /// <reference types="mongodb" />
 /// <reference types="mutent" />
 
-import {
+import type {
   BulkWriteOptions,
   Collection,
+  Db,
   DeleteOptions,
   Filter,
   FindOptions,
+  MongoClient,
   ReplaceOptions,
   UpdateOptions,
 } from "mongodb";
-import { Adapter, BulkAction, Generics, Store } from "mutent";
+import type { Adapter, BulkAction, Generics, Store } from "mutent";
 
 export interface MongoGenerics<T extends object> extends Generics {
   adapter: MongoAdapter<T>;
@@ -41,9 +43,29 @@ export interface MongoOptions
 
 export interface MongoAdapterOptions<T extends object> {
   /**
-   * MongoDB's collection instance.
+   * MongoDB's `Collection` instance. This option has precedence over
+   * `client`, `dbName`, `db`, and `collectionName`.
    */
   collection?: Collection<T>;
+  /**
+   * Name of the collection. This option is required when `collection` is
+   * **not** defined.
+   */
+  collectionName?: string;
+  /**
+   * MongoDB's `Db` instance. This option has precedence over `dbName`
+   * and `client`.
+   */
+  db?: Db;
+  /**
+   * Name of the database. Defaults to the database specified in the conection
+   * URL, or `"admin"`.
+   */
+  dbName?: string;
+  /**
+   * An already-connected `MongoClient` instance.
+   */
+  client?: MongoClient;
   /**
    * Replace the whole document instead of just update the changed properties.
    *
@@ -65,7 +87,7 @@ export interface MongoAdapterOptions<T extends object> {
 }
 
 export class MongoAdapter<T extends object> implements Adapter<Generics> {
-  collection: Collection<T>;
+  readonly collection: Collection<T>;
   constructor(options: MongoAdapterOptions<T>);
   find(query: MongoQuery<T>, options?: MongoOptions): Promise<T>;
   filter(query: MongoQuery<T>, options?: MongoOptions): AsyncIterable<T>;
