@@ -1,7 +1,6 @@
 .*
 !.c8rc
 !.gitignore
-ava.config.js
 coverage
 mutent-mongodb.cjs
 node_modules

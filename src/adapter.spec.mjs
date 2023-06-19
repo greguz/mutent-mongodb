@@ -2,7 +2,7 @@ import test from 'ava'
 import { ObjectId } from 'mongodb'
 import { compileFilterQuery, compileUpdateQuery } from 'mql-match'
 
-import { MongoAdapter } from './mutent-mongodb.mjs'
+import { MongoAdapter } from './adapter.mjs'
 
 const collection = {
   dbName: 'mockedDb',
@@ -35,21 +35,35 @@ const collection = {
   async replaceOne (filter, doc, options) {
     const index = this.items.findIndex(compileFilterQuery(filter))
 
+    let upsertedId
     if (index >= 0) {
       this.items[index] = doc
+    } else if (options.upsert) {
+      const { insertedId } = await this.insertOne(doc, options)
+      upsertedId = insertedId
     }
 
-    return { matchedCount: index >= 0 ? 1 : 0 }
+    return {
+      matchedCount: index >= 0 ? 1 : 0,
+      upsertedId
+    }
   },
   async updateOne (filter, update, options) {
     const mutate = compileUpdateQuery(update)
     const index = this.items.findIndex(compileFilterQuery(filter))
 
+    let upsertedId
     if (index >= 0) {
       this.items.splice(index, 1, mutate(this.items[index]))
+    } else if (options.upsert) {
+      const { insertedId } = await this.insertOne(mutate({}, true), options)
+      upsertedId = insertedId
     }
 
-    return { matchedCount: index >= 0 ? 1 : 0 }
+    return {
+      matchedCount: index >= 0 ? 1 : 0,
+      upsertedId
+    }
   },
   async deleteOne (filter, options) {
     const index = this.items.findIndex(compileFilterQuery(filter))
@@ -64,17 +78,20 @@ const collection = {
     const insertedIds = {}
     const upsertedIds = {}
 
+    let deletedCount = 0
+    let matchedCount = 0
+
     for (let i = 0; i < ops.length; i++) {
       const op = ops[i]
 
       if (op.insertOne) {
-        const { insertedId } = await this.insertOne(
+        const result = await this.insertOne(
           op.insertOne.document,
           options
         )
-        insertedIds[i] = insertedId
+        insertedIds[i] = result.insertedId
       } else if (op.updateOne) {
-        const { upsertedId } = await this.updateOne(
+        const result = await this.updateOne(
           op.updateOne.filter,
           op.updateOne.update,
           {
@@ -82,11 +99,12 @@ const collection = {
             upsert: op.updateOne.upsert
           }
         )
-        if (upsertedId) {
-          upsertedIds[i] = upsertedId
+        matchedCount += result.matchedCount
+        if (result.upsertedId) {
+          upsertedIds[i] = result.upsertedId
         }
       } else if (op.replaceOne) {
-        const { upsertedId } = await this.replaceOne(
+        const result = await this.replaceOne(
           op.replaceOne.filter,
           op.replaceOne.replacement,
           {
@@ -94,21 +112,26 @@ const collection = {
             upsert: op.replaceOne.upsert
           }
         )
-        if (upsertedId) {
-          upsertedIds[i] = upsertedId
+        matchedCount += result.matchedCount
+        if (result.upsertedId) {
+          upsertedIds[i] = result.upsertedId
         }
       } else if (op.deleteOne) {
-        await this.deleteOne(
+        const result = await this.deleteOne(
           op.deleteOne.filter,
           options
         )
+        deletedCount += result.deletedCount
       } else {
         throw new Error('Unsupported bulk operation')
       }
     }
 
     return {
+      deletedCount,
       insertedIds,
+      matchedCount,
+      upsertedCount: Object.keys(upsertedIds).length,
       upsertedIds
     }
   },
@@ -123,6 +146,34 @@ const collection = {
     return { insertedIds }
   }
 }
+
+test('getCollection', t => {
+  t.truthy(new MongoAdapter({ collection }))
+
+  const db = {
+    collection (collectionName) {
+      t.is(collectionName, 'testCollection')
+      return collection
+    }
+  }
+  t.truthy(new MongoAdapter({ db, collectionName: 'testCollection' }))
+
+  const client = {
+    db (dbName) {
+      t.is(dbName, 'testDb')
+      return db
+    }
+  }
+  t.truthy(
+    new MongoAdapter({
+      client,
+      dbName: 'testDb',
+      collectionName: 'testCollection'
+    })
+  )
+
+  t.throws(() => new MongoAdapter({ client, dbName: 'nope' }))
+})
 
 test('find', async t => {
   t.plan(1)
@@ -294,7 +345,7 @@ test('delete', async t => {
 })
 
 test('bulk', async t => {
-  t.plan(1)
+  t.plan(5)
 
   const { insertedIds } = await collection.insertMany([
     { test: 'bulk', index: 0 },
@@ -332,10 +383,91 @@ test('bulk', async t => {
       {
         type: 'DELETE',
         data: await collection.findOne({ _id: insertedIds[2] })
+      },
+      {
+        type: 'UPDATE',
+        oldData: {
+          test: 'bulk'
+        },
+        newData: {
+          test: 'bulk',
+          index: 4
+        }
       }
     ],
     { upsert: true }
   )
 
-  t.true(Array.isArray(documents))
+  const created = await collection.findOne({ test: 'bulk', index: 3 })
+  t.truthy(created)
+  t.true(ObjectId.isValid(created._id))
+
+  t.like(documents, [
+    { index: 0, _id: insertedIds[0] },
+    { index: 3 },
+    { index: 1, _id: insertedIds[1] },
+    { index: 2, _id: insertedIds[2] },
+    { index: 4 }
+  ])
+  t.truthy(documents[1]._id.toHexString)
+  t.truthy(documents[4]._id.toHexString)
+})
+
+test('strictUpdate', async t => {
+  const adapter = new MongoAdapter({
+    collection,
+    strictUpdate: true
+  })
+
+  const oldData = { _id: new ObjectId(), test: 'strictUpdate' }
+  const newData = { ...oldData, value: 42 }
+
+  await t.throwsAsync(
+    () => adapter.update(oldData, newData),
+    { message: `Expected update ack for document ${oldData._id}` }
+  )
+  await t.throwsAsync(
+    () => adapter.update(oldData, newData, { replace: true }),
+    { message: `Expected replace ack for document ${oldData._id}` }
+  )
+
+  await t.throwsAsync(
+    () => adapter.bulk([{ type: 'UPDATE', oldData, newData }]),
+    { message: 'Some documents were not present during their update' }
+  )
+  await t.throwsAsync(
+    () => adapter.bulk([{ type: 'UPDATE', oldData, newData }], { replace: true }),
+    { message: 'Some documents were not present during their update' }
+  )
+})
+
+test('strictDelete', async t => {
+  const { insertedId } = await collection.insertOne({ test: 'strictDelete' })
+
+  const adapter = new MongoAdapter({
+    collection,
+    strictDelete: true
+  })
+
+  const doc = await collection.findOne({ _id: insertedId })
+  t.truthy(doc)
+
+  await adapter.delete(doc)
+  await t.throwsAsync(
+    () => adapter.delete(doc),
+    { message: `Expected delete ack for document ${doc._id}` }
+  )
+
+  await collection.insertOne(doc)
+
+  const action = {
+    type: 'DELETE',
+    data: doc
+  }
+
+  await adapter.bulk([action])
+  await t.throwsAsync(
+    () => adapter.bulk([action]),
+    { message: 'Some documents were not present during their deletion' }
+  )
 })

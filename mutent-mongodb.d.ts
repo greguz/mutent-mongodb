@@ -39,7 +39,12 @@ export interface MongoOptions
     DeleteOptions,
     FindOptions,
     ReplaceOptions,
-    UpdateOptions {}
+    UpdateOptions {
+  /**
+   * Override adapter configured `replace` option value.
+   */
+  replace?: boolean;
+}
 
 export interface MongoAdapterOptions<T extends object> {
   /**
