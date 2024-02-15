@@ -30,16 +30,16 @@
   "author": "Giacomo Gregoletto",
   "license": "MIT",
   "peerDependencies": {
-    "mongodb": "^5.0.0",
-    "mutent": "^5.0.0"
+    "mongodb": ">=5.0.0",
+    "mutent": "^5.2.0"
   },
   "devDependencies": {
-    "ava": "^5.3.0",
-    "c8": "^8.0.0",
-    "mongodb": "^5.6.0",
-    "mql-match": "^0.7.1",
-    "mutent": "^5.0.1",
-    "rollup": "^3.25.1",
+    "ava": "^6.1.1",
+    "c8": "^9.1.0",
+    "mongodb": "^5.9.2",
+    "mongodb-memory-server": "^9.1.6",
+    "mutent": "^5.2.0",
+    "rollup": "^4.10.0",
     "standard": "^17.1.0"
   },
   "repository": {

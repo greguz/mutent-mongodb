@@ -1,3 +1,14 @@
+const SYM_ORPHAN = Symbol.for('mutent-mongodb-orphan')
+
+export function flagOrphan (doc) {
+  doc[SYM_ORPHAN] = true
+  return doc
+}
+
+export function isOrphaned (doc) {
+  return SYM_ORPHAN in Object(doc)
+}
+
 export function isPlainObject (value) {
   return Object.prototype.toString.call(value) === '[object Object]'
 }

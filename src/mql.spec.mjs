@@ -2,22 +2,27 @@ import test from 'ava'
 
 import { buildUpdateQuery } from './mql.mjs'
 
-test('buildUpdateQuery', t => {
-  t.throws(() => buildUpdateQuery('', 0))
-  t.throws(() => buildUpdateQuery({}, ''))
-  t.throws(() => buildUpdateQuery(0, {}))
+test('without documents', t => {
+  t.deepEqual(buildUpdateQuery('', 0), null)
+  t.deepEqual(buildUpdateQuery({}, ''), null)
+  t.deepEqual(buildUpdateQuery(0, {}), null)
+  t.deepEqual(buildUpdateQuery({}, null), null)
+  t.deepEqual(buildUpdateQuery(null, null), null)
+})
 
-  t.like(
-    buildUpdateQuery(
-      {
-        hello: 'world',
-        bye: 'bye'
-      },
-      {
-        hello: 'games',
-        redeemed: true
-      }
-    ),
+test('simple case', t => {
+  const from = {
+    hello: 'world',
+    bye: 'bye'
+  }
+
+  const to = {
+    hello: 'games',
+    redeemed: true
+  }
+
+  t.deepEqual(
+    buildUpdateQuery(from, to),
     {
       $set: {
         hello: 'games',
@@ -28,86 +33,53 @@ test('buildUpdateQuery', t => {
       }
     }
   )
+})
 
-  t.like(
-    buildUpdateQuery(
-      {
-        items: [
-          {
-            a: 'value'
-          }
-        ]
-      },
-      {
-        items: []
-      }
-    ),
+test('update array', t => {
+  const from = {
+    hello: 'pdor',
+    items: ['a', 'b', 'c', 'd', 'e', 'f'],
+    value: 42
+  }
+
+  const to = {
+    hello: 'world',
+    items: ['a', 'c', 'b', 'd', 'x', 'f'],
+    value: 42
+  }
+
+  t.deepEqual(
+    buildUpdateQuery(from, to),
     {
       $set: {
-        items: []
+        hello: 'world',
+        'items.1': 'c',
+        'items.2': 'b',
+        'items.4': 'x'
       }
     }
   )
-  t.like(
-    buildUpdateQuery(
-      {
-        items: [
-          {
-            a: null,
-            nope: true
-          }
-        ]
-      },
-      {
-        items: [
-          {
-            a: 'value'
-          }
-        ]
-      }
-    ),
+})
+
+test('pull from array', t => {
+  const from = {
+    hello: 'pdor',
+    items: ['a', 'b', 'c', 'd', 'e', 'f'],
+    value: 42
+  }
+
+  const to = {
+    hello: 'world',
+    items: ['c', 'b', 'x', 'f', 'z'],
+    value: 42
+  }
+
+  t.deepEqual(
+    buildUpdateQuery(from, to),
     {
       $set: {
-        'items.0.a': 'value'
-      },
-      $unset: {
-        'items.0.nope': ''
-      }
-    }
-  )
-  t.like(
-    buildUpdateQuery(
-      {
-        items: [
-          {
-            id: 1,
-            value: 'scooby doo',
-            soul: true
-          }
-        ]
-      },
-      {
-        items: [
-          {
-            id: 1,
-            value: 'scooby doo'
-          },
-          {
-            id: 2,
-            value: 'shaggy'
-          }
-        ]
-      }
-    ),
-    {
-      $set: {
-        'items.1': {
-          id: 2,
-          value: 'shaggy'
-        }
-      },
-      $unset: {
-        'items.0.soul': ''
+        hello: 'world',
+        items: ['c', 'b', 'x', 'f', 'z']
       }
     }
   )

@@ -9,5 +9,6 @@ export default {
       file: './mutent-mongodb.cjs',
       format: 'cjs'
     }
-  ]
+  ],
+  external: ['mutent']
 }

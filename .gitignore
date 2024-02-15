@@ -7,3 +7,4 @@ mutent-mongodb.mjs
 node_modules
 package-lock.json
 yarn.lock
+*.tgz

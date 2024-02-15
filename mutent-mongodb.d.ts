@@ -12,7 +12,14 @@ import type {
   ReplaceOptions,
   UpdateOptions,
 } from "mongodb";
-import type { Adapter, BulkAction, Generics, Store } from "mutent";
+import type {
+  Adapter,
+  BulkAction,
+  Context,
+  Entity,
+  Generics,
+  Store,
+} from "mutent";
 
 export interface MongoGenerics<T extends object> extends Generics {
   adapter: MongoAdapter<T>;
@@ -24,12 +31,12 @@ export interface MongoGenerics<T extends object> extends Generics {
 /**
  * Mutent's Store preconfigured with MongoDB types.
  */
-export declare type MongoStore<T extends object> = Store<MongoGenerics<T>>;
+export type MongoStore<T extends object> = Store<MongoGenerics<T>>;
 
 /**
  * Accepted query type by Mutent's Store instance.
  */
-export declare type MongoQuery<T extends object> = Filter<T>;
+export type MongoQuery<T extends object> = Filter<T>;
 
 /**
  * Store's unwrap options.
@@ -39,12 +46,7 @@ export interface MongoOptions
     DeleteOptions,
     FindOptions,
     ReplaceOptions,
-    UpdateOptions {
-  /**
-   * Override adapter configured `replace` option value.
-   */
-  replace?: boolean;
-}
+    UpdateOptions {}
 
 export interface MongoAdapterOptions<T extends object> {
   /**
@@ -68,30 +70,50 @@ export interface MongoAdapterOptions<T extends object> {
    */
   dbName?: string;
   /**
-   * An already-connected `MongoClient` instance.
+   * An connected `MongoClient` instance.
+   * See `mongodb` module for more info.
    */
   client?: MongoClient;
   /**
-   * Replace the whole document instead of just update the changed properties.
-   *
-   * @default false
+   * Custom filter query generation.
+   * Filter by `_id` by default.
    */
-  replace?: boolean;
+  filterQuery?: (
+    entity: Entity<T>,
+    ctx: Context<MongoGenerics<T>>
+  ) => Filter<T>;
   /**
-   * Throw an error when a delete request does not match any document.
+   * Write mode to use during updates.
+   * - `"AUTO"`: Choose the correct mode automatically (not a silver bullet).
+   * - `"DIFF"`: Always try to diff the objects.
+   * - `"REPLACE"`: Always replace the whole document.
    *
-   * @default false
+   * @default "AUTO"
    */
-  strictDelete?: boolean;
+  updateMode?: "AUTO" | "DIFF" | "REPLACE";
   /**
-   * Throw an error when an update request does not match any document.
+   * Expect a matching document during an update request.
+   *
+   * If `true`, all update requests must result in MongoDB saying that a
+   * document has matched the filter query.
    *
    * @default false
    */
-  strictUpdate?: boolean;
+  matchUpdates?: boolean;
+  /**
+   * Expect a matching document during a delete request.
+   *
+   * If `true`, all delete requests must result in MongoDB saying that a
+   * document has matched the filter query.
+   *
+   * @default false
+   */
+  matchDeletes?: boolean;
 }
 
-export class MongoAdapter<T extends object> implements Adapter<Generics> {
+export declare class MongoAdapter<T extends object>
+  implements Adapter<Generics>
+{
   readonly collection: Collection<T>;
   constructor(options: MongoAdapterOptions<T>);
   find(query: MongoQuery<T>, options?: MongoOptions): Promise<T>;
@@ -101,3 +123,9 @@ export class MongoAdapter<T extends object> implements Adapter<Generics> {
   delete(data: T, options?: MongoOptions): Promise<void>;
   bulk(actions: Array<BulkAction<T>>, options?: MongoOptions): Promise<T[]>;
 }
+
+/**
+ * Returns `true` when the document has missed an update request
+ * (database orphan).
+ */
+export declare function isOrphaned(doc: any): boolean;
