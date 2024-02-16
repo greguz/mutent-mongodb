@@ -6,37 +6,41 @@ import type {
   Collection,
   Db,
   DeleteOptions,
+  Document,
   Filter,
   FindOptions,
   MongoClient,
   ReplaceOptions,
   UpdateOptions,
 } from "mongodb";
-import type {
-  Adapter,
-  BulkAction,
-  Context,
-  Entity,
-  Generics,
-  Store,
-} from "mutent";
+import type { Adapter, Context, Entity, Generics, Store } from "mutent";
 
-export interface MongoGenerics<T extends object> extends Generics {
-  adapter: MongoAdapter<T>;
+/**
+ * All generics without the Adapter (used by the Adapter itself).
+ */
+export interface MongoAdapterGenerics<T extends Document> extends Generics {
   entity: T;
   query: MongoQuery<T>;
   options: MongoOptions;
 }
 
 /**
+ * All MongoDB generics collection (used by Mutent).
+ */
+export interface MongoGenerics<T extends Document>
+  extends MongoAdapterGenerics<T> {
+  adapter: MongoAdapter<T>;
+}
+
+/**
  * Mutent's Store preconfigured with MongoDB types.
  */
-export type MongoStore<T extends object> = Store<MongoGenerics<T>>;
+export type MongoStore<T extends Document> = Store<MongoGenerics<T>>;
 
 /**
  * Accepted query type by Mutent's Store instance.
  */
-export type MongoQuery<T extends object> = Filter<T>;
+export type MongoQuery<T extends Document> = Filter<T>;
 
 /**
  * Store's unwrap options.
@@ -48,7 +52,7 @@ export interface MongoOptions
     ReplaceOptions,
     UpdateOptions {}
 
-export interface MongoAdapterOptions<T extends object> {
+export interface MongoAdapterOptions<T extends Document> {
   /**
    * MongoDB's `Collection` instance. This option has precedence over
    * `client`, `dbName`, `db`, and `collectionName`.
@@ -78,10 +82,7 @@ export interface MongoAdapterOptions<T extends object> {
    * Custom filter query generation.
    * Filter by `_id` by default.
    */
-  filterQuery?: (
-    entity: Entity<T>,
-    ctx: Context<MongoGenerics<T>>
-  ) => Filter<T>;
+  filterQuery?: (entity: Entity<T>, ctx: Context<MongoGenerics<T>>) => any;
   /**
    * Write mode to use during updates.
    * - `"AUTO"`: Choose the correct mode automatically (not a silver bullet).
@@ -111,17 +112,29 @@ export interface MongoAdapterOptions<T extends object> {
   matchDeletes?: boolean;
 }
 
-export declare class MongoAdapter<T extends object>
-  implements Adapter<Generics>
+export declare class MongoAdapter<T extends Document>
+  implements Adapter<MongoAdapterGenerics<T>>
 {
   readonly collection: Collection<T>;
   constructor(options: MongoAdapterOptions<T>);
-  find(query: MongoQuery<T>, options?: MongoOptions): Promise<T>;
-  filter(query: MongoQuery<T>, options?: MongoOptions): AsyncIterable<T>;
-  create(data: T, options?: MongoOptions): Promise<T>;
-  update(oldData: T, newData: T, options?: MongoOptions): Promise<void>;
-  delete(data: T, options?: MongoOptions): Promise<void>;
-  bulk(actions: Array<BulkAction<T>>, options?: MongoOptions): Promise<T[]>;
+  find(query: MongoQuery<T>, options: MongoOptions): Promise<T>;
+  filter(query: MongoQuery<T>, options: MongoOptions): AsyncIterable<T>;
+  createEntity(
+    entity: Entity<T>,
+    ctx: Context<MongoAdapterGenerics<T>>
+  ): Promise<void>;
+  updateEntity(
+    entity: Entity<T>,
+    ctx: Context<MongoAdapterGenerics<T>>
+  ): Promise<void>;
+  deleteEntity(
+    entity: Entity<T>,
+    ctx: Context<MongoAdapterGenerics<T>>
+  ): Promise<void>;
+  bulkEntities(
+    entities: Array<Entity<T>>,
+    ctx: Context<MongoAdapterGenerics<T>>
+  ): Promise<void>;
 }
 
 /**
