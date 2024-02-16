@@ -1,7 +1,8 @@
 import test from 'ava'
 import { Entity } from 'mutent'
 
-import { MongoAdapter, isOrphaned } from '../src/adapter.mjs'
+import { MongoAdapter } from '../lib/adapter.mjs'
+import { isOrphaned } from '../lib/util.mjs'
 import { getCollection } from './_mongod.mjs'
 
 test('getCollection', t => {

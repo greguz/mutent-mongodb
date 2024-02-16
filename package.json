@@ -11,6 +11,8 @@
     "types": "./mutent-mongodb.d.ts"
   },
   "files": [
+    "lib",
+    "!**/*.spec.mjs",
     "mutent-mongodb.cjs",
     "mutent-mongodb.mjs",
     "mutent-mongodb.d.ts"

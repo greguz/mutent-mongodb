@@ -3,7 +3,6 @@
 !.gitignore
 coverage
 mutent-mongodb.cjs
-mutent-mongodb.mjs
 node_modules
 package-lock.json
 yarn.lock

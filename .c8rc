@@ -2,7 +2,8 @@
   "all": true,
   "reporter": ["html", "lcov", "text"],
   "include": [
-    "src/**/*.mjs"
+    "lib/**/*.mjs",
+    "mutent-mongodb.mjs"
   ],
   "exclude": [
     "**/*.spec.mjs"

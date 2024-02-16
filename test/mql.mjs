@@ -1,6 +1,6 @@
 import test from 'ava'
 
-import { buildUpdateQuery } from '../src/mql.mjs'
+import { buildUpdateQuery } from '../lib/mql.mjs'
 import { getCollection } from './_mongod.mjs'
 
 test('pull from array', async t => {
