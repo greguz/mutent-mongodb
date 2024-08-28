@@ -1,8 +1,8 @@
 export default {
   input: './mutent-mongodb.mjs',
-  output:  {
+  output: {
     file: './mutent-mongodb.cjs',
     format: 'cjs'
   },
-  external: ['mutent']
+  external: ['mongodb', 'mutent']
 }
