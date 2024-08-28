@@ -1,6 +1,6 @@
 {
   "name": "mutent-mongodb",
-  "version": "0.13.1",
+  "version": "1.0.0",
   "description": "MongoDB adapter for Mutent",
   "type": "module",
   "main": "./mutent-mongodb.cjs",
