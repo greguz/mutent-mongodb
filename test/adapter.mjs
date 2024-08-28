@@ -1,11 +1,11 @@
 import test from 'ava'
-import { Entity } from 'mutent'
+import { Store, getAdapterName } from 'mutent'
 
 import MongoAdapter from '../mutent-mongodb.mjs'
 import { getCollection } from './_mongod.mjs'
 
-test('getCollection', t => {
-  t.plan(7)
+test('constructor', t => {
+  t.plan(8)
 
   t.truthy(
     new MongoAdapter({
@@ -44,87 +44,237 @@ test('getCollection', t => {
   )
 
   t.throws(() => new MongoAdapter({ client: {}, dbName: 'nope' }))
+
+  const adapter = new MongoAdapter({ collection: getCollection('constructor') })
+  t.is(
+    getAdapterName(adapter),
+    'MongoDB@mutent-mongodb:constructor'
+  )
+})
+
+test('findOne', async t => {
+  t.plan(1)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('findOne')
+    })
+  })
+
+  const { insertedId } = await store.raw.insertOne({
+    look: 'at',
+    me: 'now'
+  })
+
+  const doc = await store.find({ _id: insertedId }).unwrap()
+  t.deepEqual(doc, {
+    _id: insertedId,
+    look: 'at',
+    me: 'now'
+  })
 })
 
 test('find', async t => {
   t.plan(1)
 
-  const collection = getCollection()
-
-  const { insertedId } = await collection.insertOne({ test: 'find' })
-
-  const adapter = new MongoAdapter({ collection })
-
-  const document = await adapter.findEntity({ _id: insertedId }, { options: {} })
-
-  t.deepEqual(document, {
-    _id: insertedId,
-    test: 'find'
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('find')
+    })
   })
-})
 
-test('filter', async t => {
-  t.plan(2)
-
-  const collection = getCollection()
-
-  const { insertedIds } = await collection.insertMany([
-    { test: 'filter', index: 2 },
-    { test: 'filter', index: 0 },
-    { test: 'filter', index: 1 }
+  const { insertedIds } = await store.raw.insertMany([
+    { name: 'Donald Duck' },
+    { name: 'José Carioca' },
+    { name: 'Panchito Pistoles' }
   ])
 
-  const adapter = new MongoAdapter({ collection })
-
-  const iterable = adapter.filterEntities({
+  const docs = await store.filter({
     _id: {
       $in: Object.values(insertedIds)
     }
-  }, {
-    options: {}
-  })
+  }).unwrap()
 
-  t.is(typeof iterable[Symbol.asyncIterator], 'function')
-
-  const documents = []
-  for await (const document of iterable) {
-    documents.push(document)
-  }
-
-  t.deepEqual(documents, [
-    { _id: insertedIds[0], test: 'filter', index: 2 },
-    { _id: insertedIds[1], test: 'filter', index: 0 },
-    { _id: insertedIds[2], test: 'filter', index: 1 }
+  t.deepEqual(docs, [
+    { _id: insertedIds[0], name: 'Donald Duck' },
+    { _id: insertedIds[1], name: 'José Carioca' },
+    { _id: insertedIds[2], name: 'Panchito Pistoles' }
   ])
 })
 
-test('delete orphan', async t => {
-  t.plan(4)
+test('insertOne', async t => {
+  t.plan(1)
 
-  const adapter = new MongoAdapter({
-    collection: getCollection(),
-    allowLostDeletes: true
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('insertOne')
+    })
   })
 
-  const entity = Entity.create({ test: t.title })
+  const { _id: insertedId } = await store.create({ hello: 'world' }).unwrap()
 
-  await adapter.createEntity(entity, {})
-  entity.commit()
+  const doc = await store.raw.findOne({ _id: insertedId })
+  t.deepEqual(doc, {
+    _id: insertedId,
+    hello: 'world'
+  })
+})
 
-  t.truthy(entity.target._id)
-  t.like(entity, {
-    shouldCommit: false,
-    target: {
-      test: t.title
+test('replaceOne', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('replaceOne')
+    })
+  })
+
+  store.raw.updateOne = () => t.fail('unexpected updateOne usage')
+
+  const { insertedId } = await store.raw.insertOne({ prefix: '4' })
+
+  await store.find({ _id: insertedId })
+    .assign({ suffix: '2' })
+    .consume()
+
+  const replaced = await store.raw.findOne({ _id: insertedId })
+  t.deepEqual(replaced, {
+    _id: insertedId,
+    prefix: '4',
+    suffix: '2'
+  })
+
+  await store.raw.deleteOne({ _id: insertedId })
+
+  await t.throwsAsync(
+    store.from(replaced).assign({ oh: 'no' }).consume(),
+    { code: 'MONGODB_LOST_UPDATE' }
+  )
+})
+
+test('updateOne', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('updateOne'),
+      diffDocuments: true
+    })
+  })
+
+  store.raw.replaceOne = () => t.fail('unexpected replaceOne usage')
+
+  const { insertedId } = await store.raw.insertOne({ suffix: '2' })
+
+  await store.find({ _id: insertedId })
+    .assign({ prefix: '4' })
+    .consume()
+
+  const updated = await store.raw.findOne({ _id: insertedId })
+  t.deepEqual(updated, {
+    _id: insertedId,
+    prefix: '4',
+    suffix: '2'
+  })
+
+  await store.raw.deleteOne({ _id: insertedId })
+
+  await t.throwsAsync(
+    store.from(updated).assign({ oh: 'no' }).consume(),
+    { code: 'MONGODB_LOST_UPDATE' }
+  )
+})
+
+test('deleteOne', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('deleteOne')
+    })
+  })
+
+  const { insertedId } = await store.raw.insertOne({ message: 'bye bye' })
+
+  const doc = await store.read({ _id: insertedId })
+    .delete()
+    .unwrap()
+
+  t.deepEqual(doc, {
+    _id: insertedId,
+    message: 'bye bye'
+  })
+
+  await t.throwsAsync(
+    store.from(doc).delete().unwrap(),
+    { code: 'MONGODB_LOST_DELETE' }
+  )
+})
+
+test('lost update orphan', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('lost_update_orphan'),
+      allowLostUpdates: true
+    }),
+    hooks: {
+      beforeUpdate (entity) {
+        t.is(entity.meta.orphan, undefined)
+      },
+      afterUpdate (entity) {
+        t.true(entity.meta.orphan)
+      }
     }
   })
 
-  const { deletedCount } = await adapter.raw.deleteOne(
-    { _id: entity.target._id }
-  )
-  t.is(deletedCount, 1)
+  await store.from({})
+    .assign({ value: 'oh no' })
+    .consume()
+})
 
-  await adapter.deleteEntity(entity, {})
+test('lost delete orphan', async t => {
+  t.plan(2)
 
-  t.true(entity.meta.orphan)
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('lost_update_orphan'),
+      allowLostDeletes: true
+    }),
+    hooks: {
+      beforeDelete (entity) {
+        t.is(entity.meta.orphan, undefined)
+      },
+      afterDelete (entity) {
+        t.true(entity.meta.orphan)
+      }
+    }
+  })
+
+  await store.from({})
+    .delete()
+    .consume()
+})
+
+test('updateOne upsert', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('updateOne_upsert')
+    })
+  })
+
+  const { _id: upsertedId } = await store.from({})
+    .assign({ song: 'RATATATA' })
+    .unwrap({ upsert: true })
+
+  t.truthy(upsertedId)
+
+  const doc = await store.raw.findOne({ _id: upsertedId })
+  t.deepEqual(doc, {
+    _id: upsertedId,
+    song: 'RATATATA'
+  })
 })

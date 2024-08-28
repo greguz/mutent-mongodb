@@ -1,3 +1,4 @@
+import { ObjectId } from 'mongodb'
 import { MutentError } from 'mutent'
 
 import { buildUpdateQuery } from './lib/mql.mjs'
@@ -136,7 +137,9 @@ export default class MongoAdapter {
                 updateOne: {
                   filter: this.filterQuery(entity, ctx),
                   update: updateQuery,
-                  upsert: ctx.options.upsert === true
+                  collation: ctx.options.collation,
+                  hint: ctx.options.hint,
+                  upsert: ctx.options.upsert
                 }
               }
             })
@@ -150,6 +153,8 @@ export default class MongoAdapter {
               replaceOne: {
                 filter: this.filterQuery(entity, ctx),
                 replacement: stripUndefinedValues(entity.target),
+                collation: ctx.options.collation,
+                hint: ctx.options.hint,
                 upsert: ctx.options.upsert
               }
             }
@@ -162,7 +167,9 @@ export default class MongoAdapter {
           entity,
           op: {
             deleteOne: {
-              filter: this.filterQuery(entity, ctx)
+              filter: this.filterQuery(entity, ctx),
+              collation: ctx.options.collation,
+              hint: ctx.options.hint
             }
           }
         })
@@ -170,7 +177,7 @@ export default class MongoAdapter {
     }
 
     // Queue can be empty because of "diff" mode (different document, same properties)
-    if (queue.length <= 0) {
+    if (!queue.length) {
       return
     }
 
@@ -192,7 +199,8 @@ export default class MongoAdapter {
         'MONGODB_LOST_UPDATES',
         'A bulk delete request has not match some Documents',
         {
-          adapter: this[Symbol.for('adapter-name')],
+          dbName: this.raw.dbName,
+          collectionName: this.raw.collectionName,
           matchedCount,
           upsertedCount,
           expectedUpdations
@@ -205,7 +213,8 @@ export default class MongoAdapter {
         'MONGODB_LOST_DELETES',
         'A bulk update request has not match some Documents',
         {
-          adapter: this[Symbol.for('adapter-name')],
+          dbName: this.raw.dbName,
+          collectionName: this.raw.collectionName,
           deletedCount,
           expectedDeletions
         }
@@ -242,10 +251,11 @@ function filterById (entity) {
   if (typeof doc !== 'object' || doc === null) {
     throw new TypeError('Expected a MongoDB document object')
   }
-  if (doc._id === null || doc._id === undefined) {
-    throw new Error('Expected a document identifier')
-  }
-  return { _id: doc._id }
+
+  // Fallback to a random ID to avoid "pick first random document"
+  return doc._id === null || doc._id === undefined
+    ? { _id: new ObjectId() }
+    : { _id: doc._id }
 }
 
 /**
