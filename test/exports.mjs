@@ -1,8 +1,8 @@
 import test from 'ava'
 
-import { MongoAdapter, isOrphaned } from '../mutent-mongodb.mjs'
+import MongoAdapter from '../mutent-mongodb.mjs'
 
 test('exports', t => {
-  t.truthy(MongoAdapter)
-  t.truthy(isOrphaned)
+  t.true(typeof MongoAdapter === 'function')
+  t.true(MongoAdapter.name === 'MongoAdapter')
 })

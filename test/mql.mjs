@@ -28,7 +28,7 @@ test('pull from array', async t => {
     items: ['c', 'b', 'x', 'f', 'z']
   }
 
-  const { value } = await collection.findOneAndUpdate(
+  const value = await collection.findOneAndUpdate(
     { _id: insertedId },
     buildUpdateQuery(oldDoc, newDoc),
     { returnDocument: 'after' }
@@ -65,7 +65,7 @@ test('update array', async t => {
     items: ['a', 'c', 'b', 'd', 'x', 'f']
   }
 
-  const { value } = await collection.findOneAndUpdate(
+  const value = await collection.findOneAndUpdate(
     { _id: insertedId },
     buildUpdateQuery(oldDoc, newDoc),
     { returnDocument: 'after' }

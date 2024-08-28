@@ -1,8 +1,7 @@
 import test from 'ava'
 import { Entity } from 'mutent'
 
-import { MongoAdapter } from '../lib/adapter.mjs'
-import { isOrphaned } from '../lib/util.mjs'
+import MongoAdapter from '../mutent-mongodb.mjs'
 import { getCollection } from './_mongod.mjs'
 
 test('getCollection', t => {
@@ -56,7 +55,7 @@ test('find', async t => {
 
   const adapter = new MongoAdapter({ collection })
 
-  const document = await adapter.find({ _id: insertedId })
+  const document = await adapter.findEntity({ _id: insertedId }, { options: {} })
 
   t.deepEqual(document, {
     _id: insertedId,
@@ -77,10 +76,12 @@ test('filter', async t => {
 
   const adapter = new MongoAdapter({ collection })
 
-  const iterable = adapter.filter({
+  const iterable = adapter.filterEntities({
     _id: {
       $in: Object.values(insertedIds)
     }
+  }, {
+    options: {}
   })
 
   t.is(typeof iterable[Symbol.asyncIterator], 'function')
@@ -101,7 +102,8 @@ test('delete orphan', async t => {
   t.plan(4)
 
   const adapter = new MongoAdapter({
-    collection: getCollection()
+    collection: getCollection(),
+    allowLostDeletes: true
   })
 
   const entity = Entity.create({ test: t.title })
@@ -117,13 +119,12 @@ test('delete orphan', async t => {
     }
   })
 
-  const { deletedCount } = await adapter.collection.deleteOne(
+  const { deletedCount } = await adapter.raw.deleteOne(
     { _id: entity.target._id }
   )
   t.is(deletedCount, 1)
 
   await adapter.deleteEntity(entity, {})
 
-  const doc = entity.valueOf()
-  t.true(isOrphaned(doc))
+  t.true(entity.meta.orphan)
 })
