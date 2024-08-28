@@ -1,5 +1,5 @@
 import test from 'ava'
-import { Store, getAdapterName } from 'mutent'
+import { Entity, Store, getAdapterName } from 'mutent'
 
 import MongoAdapter from '../mutent-mongodb.mjs'
 import { getCollection } from './_mongod.mjs'
@@ -278,3 +278,90 @@ test('updateOne upsert', async t => {
     song: 'RATATATA'
   })
 })
+
+test('bulkWrite', async t => {
+  t.plan(2)
+
+  const store = new Store({
+    adapter: new MongoAdapter({
+      collection: getCollection('bulkWrite')
+    })
+  })
+
+  const { insertedIds } = await store.raw.insertMany([
+    { name: 'Simon' },
+    { name: 'Kamina' }
+  ])
+
+  const bulkWrite = store.raw.bulkWrite.bind(store.raw)
+
+  store.raw.bulkWrite = (ops, options) => {
+    t.like(ops, [
+      {
+        replaceOne: {
+          replacement: {
+            _id: insertedIds[0],
+            name: 'Simon',
+            spiral: true
+          },
+          upsert: true
+        }
+      },
+      {
+        deleteOne: {
+          filter: {
+            _id: insertedIds[1]
+          }
+        }
+      },
+      {
+        insertOne: {
+          document: {
+            name: 'Yoko',
+            spiral: true
+          }
+        }
+      },
+      {
+        replaceOne: {
+          replacement: {
+            name: 'Nia',
+            spiral: true
+          },
+          upsert: true
+        }
+      }
+    ])
+    return bulkWrite(ops, options)
+  }
+
+  await store.filter()
+    .update(doc => {
+      if (doc.name === 'Simon') {
+        return { ...doc }
+      }
+    })
+    .delete(doc => doc.name === 'Kamina')
+    .pipe(
+      inject(
+        Entity.create({ name: 'Yoko' }),
+        Entity.read({ name: 'Nia' })
+      )
+    )
+    .assign({ spiral: true })
+    .unwrap({ upsert: true })
+
+  const docs = await store.raw.find().toArray()
+  t.like(docs, [
+    { name: 'Simon', spiral: true },
+    { name: 'Yoko', spiral: true },
+    { name: 'Nia', spiral: true }
+  ])
+})
+
+function inject (...newItems) {
+  return async function * (oldItems) {
+    yield * oldItems
+    yield * newItems
+  }
+}
